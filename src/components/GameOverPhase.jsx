@@ -40,7 +40,7 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
 
         {/* Team Rating */}
         <div className="p-5 rounded-xl bg-surface border border-gray-700 mb-8">
-          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-4">Team Ratings</h3>
+          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-4">Team Ratings (Position-Weighted)</h3>
           <div className="grid grid-cols-3 gap-4">
             <RatingCircle label="Attack" value={teamStats.attack} color="text-red-400" />
             <RatingCircle label="Midfield" value={teamStats.midfield} color="text-emerald-accent" />
@@ -48,24 +48,16 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           </div>
         </div>
 
-        {/* Record Breakers */}
+        {/* Record Breakers — Premium Card Design */}
         {records.length > 0 && (
           <div className="mb-8">
             <h3 className="flex items-center gap-2 text-lg font-bold text-gold mb-4">
               <Award className="w-5 h-5" />
               Record Breaker Cards
             </h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {records.map((record, i) => (
-                <div key={i} className="p-4 rounded-xl bg-gradient-to-r from-gold/10 to-transparent border border-gold/30">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">🏆</div>
-                    <div>
-                      <div className="text-gold font-bold text-sm">{record.headline}</div>
-                      <div className="text-gray-400 text-xs mt-0.5">Inspired by {record.player.name}</div>
-                    </div>
-                  </div>
-                </div>
+                <RecordBreakerCard key={i} record={record} />
               ))}
             </div>
           </div>
@@ -82,16 +74,59 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
         </div>
 
         {/* Restart */}
-        <div className="text-center">
+        <div className="text-center pb-8">
           <button
             onClick={onRestart}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-accent text-white font-semibold
-                       hover:bg-emerald-600 transition-colors"
+                       hover:bg-emerald-600 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             Draft Again
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function RecordBreakerCard({ record }) {
+  const { player, headline } = record;
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-gold/40 bg-gradient-to-br from-gold/15 via-surface to-gold/5 p-5">
+      {/* Shimmer accent */}
+      <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gold/10 blur-2xl" />
+      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-gold/8 blur-xl" />
+
+      <div className="relative">
+        {/* Top badge */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/20 border border-gold/30">
+            <Trophy className="w-3.5 h-3.5 text-gold fill-gold" />
+            <span className="text-[10px] font-bold text-gold uppercase tracking-wider">Record Breaker</span>
+          </div>
+        </div>
+
+        {/* Player info */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gold/20 border border-gold/30 flex items-center justify-center">
+            <span className="text-xl font-black text-gold">{player.rating}</span>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-base">{player.name}</h4>
+            <p className="text-gold/60 text-xs">{player.country} • {player.year}</p>
+          </div>
+        </div>
+
+        {/* Headline */}
+        <p className="text-gold font-medium text-sm leading-relaxed">{headline}</p>
+
+        {/* Superpower tag */}
+        {player.superpower && (
+          <div className="mt-3 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gold/10 border border-gold/20">
+            <Star className="w-3 h-3 text-gold fill-gold" />
+            <span className="text-[10px] text-gold/80 font-semibold">{player.superpower.name}</span>
+          </div>
+        )}
       </div>
     </div>
   );

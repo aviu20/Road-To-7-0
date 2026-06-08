@@ -1,21 +1,22 @@
-import { useState, useEffect } from "react";
-import { Swords, Trophy, XCircle } from "lucide-react";
+import { useState } from "react";
+import { Swords, Trophy, Play } from "lucide-react";
 
-export default function TournamentPhase({ results, onComplete }) {
+export default function TournamentPhase({ results, groupTable, onComplete }) {
   const [visibleMatches, setVisibleMatches] = useState(0);
-  const [showingEvents, setShowingEvents] = useState(false);
 
-  useEffect(() => {
-    if (visibleMatches < results.length) {
-      const timer = setTimeout(() => {
-        setVisibleMatches((v) => v + 1);
-      }, 1500);
-      return () => clearTimeout(timer);
+  const groupMatches = results.filter((r) => r.round.startsWith("Group"));
+  const knockoutMatches = results.filter((r) => !r.round.startsWith("Group"));
+  const isGroupDone = visibleMatches >= groupMatches.length;
+  const knockoutVisible = Math.max(0, visibleMatches - groupMatches.length);
+  const allRevealed = visibleMatches >= results.length;
+
+  const handlePlayMatch = () => {
+    if (allRevealed) {
+      onComplete();
     } else {
-      const timer = setTimeout(() => onComplete(), 2000);
-      return () => clearTimeout(timer);
+      setVisibleMatches((v) => v + 1);
     }
-  }, [visibleMatches, results.length, onComplete]);
+  };
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -26,26 +27,105 @@ export default function TournamentPhase({ results, onComplete }) {
           <p className="text-gray-400">Your legends take the field...</p>
         </div>
 
-        <div className="space-y-3">
-          {results.slice(0, visibleMatches).map((match, i) => (
-            <MatchCard key={i} match={match} index={i} />
-          ))}
-
-          {visibleMatches < results.length && (
-            <div className="flex items-center justify-center py-6">
-              <div className="flex items-center gap-3 text-gray-400">
-                <Swords className="w-5 h-5 animate-pulse" />
-                <span>Next match loading...</span>
+        {/* Group Table */}
+        {groupTable && visibleMatches > 0 && (
+          <div className="mb-6 p-4 rounded-xl bg-surface border border-gray-700">
+            <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Group Standings</h3>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-500 text-xs uppercase">
+                  <th className="text-left pb-2 pr-2">#</th>
+                  <th className="text-left pb-2">Team</th>
+                  <th className="text-center pb-2 w-8">P</th>
+                  <th className="text-center pb-2 w-8">W</th>
+                  <th className="text-center pb-2 w-8">D</th>
+                  <th className="text-center pb-2 w-8">L</th>
+                  <th className="text-center pb-2 w-10">GD</th>
+                  <th className="text-center pb-2 w-10 font-bold">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupTable.map((team, i) => {
+                  const gd = team.goalsFor - team.goalsAgainst;
+                  const qualified = i < 2 && isGroupDone;
+                  return (
+                    <tr
+                      key={team.name}
+                      className={`border-t border-gray-700/50 ${
+                        team.isUser ? "text-emerald-accent font-semibold" : "text-gray-300"
+                      } ${qualified ? "bg-emerald-accent/5" : i >= 2 && isGroupDone ? "opacity-50" : ""}`}
+                    >
+                      <td className="py-2 pr-2 text-gray-500">{i + 1}</td>
+                      <td className="py-2">{team.isUser ? "Your XI" : team.name}</td>
+                      <td className="text-center py-2">{Math.min(team.played, visibleMatches > 0 ? 3 : 0)}</td>
+                      <td className="text-center py-2">{team.wins}</td>
+                      <td className="text-center py-2">{team.draws}</td>
+                      <td className="text-center py-2">{team.losses}</td>
+                      <td className="text-center py-2">{gd > 0 ? `+${gd}` : gd}</td>
+                      <td className="text-center py-2 font-bold">{team.points}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {isGroupDone && (
+              <div className="mt-2 text-xs text-gray-500">
+                Top 2 qualify for the knockout rounds
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Group Matches */}
+        {groupMatches.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Group Stage</h3>
+            <div className="space-y-3">
+              {groupMatches.slice(0, visibleMatches).map((match, i) => (
+                <MatchCard key={`g${i}`} match={match} />
+              ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Knockout Matches */}
+        {isGroupDone && knockoutVisible > 0 && (
+          <div className="mb-4">
+            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2 mt-6">Knockout Rounds</h3>
+            <div className="space-y-3">
+              {knockoutMatches.slice(0, knockoutVisible).map((match, i) => (
+                <MatchCard key={`k${i}`} match={match} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Play Match / Continue Button */}
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handlePlayMatch}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all cursor-pointer
+                       bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95"
+          >
+            {allRevealed ? (
+              <>
+                <Trophy className="w-5 h-5" />
+                See Results
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5" />
+                {visibleMatches === 0 ? "Start Tournament" : "Play Next Match"}
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function MatchCard({ match, index }) {
+function MatchCard({ match }) {
   const [expanded, setExpanded] = useState(false);
   const resultColors = {
     W: "border-emerald-accent/50 bg-emerald-accent/5",
@@ -57,7 +137,7 @@ function MatchCard({ match, index }) {
 
   return (
     <div
-      className={`p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-500 animate-slide-in cursor-pointer`}
+      className={`p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-300 cursor-pointer`}
       onClick={() => setExpanded(!expanded)}
     >
       <div className="flex items-center justify-between">
@@ -80,7 +160,11 @@ function MatchCard({ match, index }) {
       {expanded && (
         <div className="mt-3 pt-3 border-t border-gray-700 space-y-1">
           {match.events.map((event, i) => (
-            <div key={i} className={`text-xs ${event.team === "player" ? "text-emerald-accent" : "text-red-300"}`}>
+            <div key={i} className={`text-xs ${
+              event.team === "player" ? "text-emerald-accent" :
+              event.team === "opponent" ? "text-red-300" :
+              "text-gray-400"
+            }`}>
               {event.text}
             </div>
           ))}

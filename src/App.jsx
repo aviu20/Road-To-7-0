@@ -44,6 +44,7 @@ export default function App() {
           squad: newSquad,
           phase: PHASES.TOURNAMENT,
           tournamentResults: tournament.results,
+          groupTable: tournament.groupTable,
           eliminated: tournament.eliminated,
           finalRound: tournament.finalRound,
         };
@@ -95,6 +96,7 @@ export default function App() {
       {state.phase === PHASES.TOURNAMENT && (
         <TournamentPhase
           results={state.tournamentResults}
+          groupTable={state.groupTable}
           onComplete={handleTournamentComplete}
         />
       )}
