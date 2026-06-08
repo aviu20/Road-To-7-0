@@ -1,5 +1,17 @@
 import { Star } from "lucide-react";
-import { positionLabels } from "../data/legends";
+import { positionLabels, countryFlags } from "../data/legends";
+
+function Flag({ country, size = "w-5" }) {
+  const code = countryFlags[country];
+  if (!code) return null;
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      alt={country}
+      className={`${size} h-auto rounded-[2px] shrink-0`}
+    />
+  );
+}
 
 const positionColors = {
   FW: "text-red-400 bg-red-400/10 border-red-400/30",
@@ -21,7 +33,10 @@ export default function PlayerCard({ player, onPick, compact = false }) {
         </div>
         <div className="min-w-0">
           <span className={`font-medium text-sm ${isLegend ? "text-gold" : "text-white"}`}>{player.name}</span>
-          <span className="text-gray-400 text-xs ml-2">{player.country} {player.year}</span>
+          <span className="text-gray-400 text-xs ml-2 inline-flex items-center gap-1">
+            <Flag country={player.country} size="w-4" />
+            {player.country} {player.year}
+          </span>
         </div>
         <span className="ml-auto text-emerald-accent font-bold text-sm shrink-0">{player.rating}</span>
       </div>
@@ -55,7 +70,8 @@ export default function PlayerCard({ player, onPick, compact = false }) {
       </div>
 
       <h3 className={`text-lg font-bold mb-1 ${isLegend ? "text-gold" : "text-white"}`}>{player.name}</h3>
-      <p className="text-sm text-gray-400 mb-3">
+      <p className="text-sm text-gray-400 mb-3 flex items-center gap-1.5">
+        <Flag country={player.country} />
         {player.country} • {player.year}
       </p>
 

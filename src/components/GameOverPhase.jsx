@@ -1,5 +1,6 @@
 import { Trophy, Star, RotateCcw, Award } from "lucide-react";
 import { calculateTeamStats, checkRecordBreakers } from "../engine/gameEngine";
+import { countryFlags } from "../data/legends";
 import PlayerCard from "./PlayerCard";
 
 export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart }) {
@@ -113,7 +114,10 @@ function RecordBreakerCard({ record }) {
           </div>
           <div>
             <h4 className="text-white font-bold text-base">{player.name}</h4>
-            <p className="text-gold/60 text-xs">{player.country} • {player.year}</p>
+            <p className="text-gold/60 text-xs flex items-center gap-1">
+              <img src={`https://flagcdn.com/w40/${countryFlags[player.country]}.png`} alt="" className="w-4 h-auto rounded-[1px]" />
+              {player.country} • {player.year}
+            </p>
           </div>
         </div>
 

@@ -96,12 +96,31 @@ export function calculateTeamStats(squad) {
   return { attack, midfield, defense };
 }
 
+// ─── Simulation helpers ──────────────────────────────────────
+// Opponent stats are flat team composites (88/86/78) while user stats
+// are position-weighted (FW drives ATK, GK dilutes it). Scale opponents
+// down to put both on the same scale.
+const OPPONENT_SCALE = 0.90;
+
+function normalizeOpponent(opp) {
+  return {
+    ...opp,
+    attack: Math.round(opp.attack * OPPONENT_SCALE),
+    midfield: Math.round(opp.midfield * OPPONENT_SCALE),
+    defense: Math.round(opp.defense * OPPONENT_SCALE),
+  };
+}
+
+function calculatePower(stats) {
+  return stats.attack * 0.4 + stats.midfield * 0.35 + stats.defense * 0.25;
+}
+
 // ─── Tournament simulation ────────────────────────────────────
 export function simulateTournament(squad) {
   const teamStats = calculateTeamStats(squad);
   const boostedStats = applySuperPowers(squad, teamStats);
 
-  const allOpponents = shuffleArray([...historicOpponents]);
+  const allOpponents = shuffleArray([...historicOpponents]).map(normalizeOpponent);
 
   // Group stage: pick 3 opponents for user + 3 for the rest of the group
   const groupOpponents = allOpponents.slice(0, 3);
@@ -218,24 +237,27 @@ function simulateGroupStage(teamStats, groupOpponents, squad) {
 }
 
 function simulateGroupMatch(homeStats, awayStats) {
-  const homePower = homeStats.attack * 0.4 + homeStats.midfield * 0.35 + homeStats.defense * 0.25;
-  const awayPower = awayStats.attack * 0.4 + awayStats.midfield * 0.35 + awayStats.defense * 0.25;
+  const homePower = calculatePower(homeStats);
+  const awayPower = calculatePower(awayStats);
 
-  const ratio = homePower / awayPower;
-  const amplified = Math.pow(ratio, 2.5);
-  const homeChance = amplified / (amplified + 1);
+  const diff = homePower - awayPower;
+  const winBase = 1 / (1 + Math.exp(-diff * 0.30));
+
+  const dominance = Math.abs(2 * winBase - 1);
+  const drawProb = 0.22 * (1 - Math.pow(dominance, 1.5));
+  const homeWinProb = winBase * (1 - drawProb);
 
   const roll = Math.random();
   let homeGoals, awayGoals;
 
-  if (roll < homeChance * 0.7) {
-    homeGoals = Math.floor(Math.random() * 3) + 1;
+  if (roll < homeWinProb) {
+    homeGoals = 1 + Math.floor(Math.random() * 3);
     awayGoals = Math.floor(Math.random() * homeGoals);
-  } else if (roll < homeChance * 0.7 + 0.15) {
+  } else if (roll < homeWinProb + drawProb) {
     homeGoals = Math.floor(Math.random() * 3);
     awayGoals = homeGoals;
   } else {
-    awayGoals = Math.floor(Math.random() * 3) + 1;
+    awayGoals = 1 + Math.floor(Math.random() * 3);
     homeGoals = Math.floor(Math.random() * awayGoals);
   }
 
@@ -243,30 +265,33 @@ function simulateGroupMatch(homeStats, awayStats) {
 }
 
 function simulateMatch(team, opponent, round, squad) {
-  const teamPower = team.attack * 0.4 + team.midfield * 0.35 + team.defense * 0.25;
-  const oppPower = opponent.attack * 0.4 + opponent.midfield * 0.35 + opponent.defense * 0.25;
+  const teamPower = calculatePower(team);
+  const oppPower = calculatePower(opponent);
 
-  const rawRatio = teamPower / oppPower;
-  const amplified = Math.pow(rawRatio, 3);
-  const teamChance = amplified / (amplified + 1);
+  const diff = teamPower - oppPower;
+  const winBase = 1 / (1 + Math.exp(-diff * 0.30));
 
-  const teamAttackFactor = team.attack / 85;
-  const oppAttackFactor = opponent.attack / 85;
+  const dominance = Math.abs(2 * winBase - 1);
+  const drawProb = 0.18 * (1 - Math.pow(dominance, 1.5));
+  const teamWinProb = winBase * (1 - drawProb);
+
+  const teamAttackFactor = team.attack / 80;
+  const oppAttackFactor = opponent.attack / 80;
 
   const roll = Math.random();
   let teamGoals, oppGoals;
 
-  if (roll < teamChance * 0.75) {
-    teamGoals = Math.floor(Math.random() * 3 * teamAttackFactor) + 1;
-    oppGoals = Math.max(0, Math.floor(Math.random() * Math.max(1, teamGoals) * (1 / rawRatio)));
+  if (roll < teamWinProb) {
+    teamGoals = 1 + Math.floor(Math.random() * Math.ceil(2.5 * teamAttackFactor));
+    oppGoals = Math.floor(Math.random() * Math.max(1, teamGoals));
     if (oppGoals >= teamGoals) oppGoals = teamGoals - 1;
-  } else if (roll < teamChance * 0.75 + 0.12) {
-    const avgGoals = Math.floor(Math.random() * 2 * ((teamAttackFactor + oppAttackFactor) / 2)) + 1;
-    teamGoals = avgGoals;
-    oppGoals = avgGoals;
+  } else if (roll < teamWinProb + drawProb) {
+    const avgFactor = (teamAttackFactor + oppAttackFactor) / 2;
+    teamGoals = Math.floor(Math.random() * Math.ceil(2 * avgFactor));
+    oppGoals = teamGoals;
   } else {
-    oppGoals = Math.floor(Math.random() * 3 * oppAttackFactor) + 1;
-    teamGoals = Math.max(0, Math.floor(Math.random() * Math.max(1, oppGoals) * rawRatio * 0.5));
+    oppGoals = 1 + Math.floor(Math.random() * Math.ceil(2.5 * oppAttackFactor));
+    teamGoals = Math.floor(Math.random() * Math.max(1, oppGoals));
     if (teamGoals >= oppGoals) teamGoals = oppGoals - 1;
   }
 
@@ -280,7 +305,7 @@ function simulateMatch(team, opponent, round, squad) {
 
   const isKnockout = !round.startsWith("Group");
   if (isKnockout && result === "D") {
-    if (Math.random() < teamChance) {
+    if (Math.random() < winBase) {
       result = "W";
       teamGoals += 1;
     } else {

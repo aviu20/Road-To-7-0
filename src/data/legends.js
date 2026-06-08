@@ -578,6 +578,20 @@ export const positionLabels = {
   GK: "Goalkeeper",
 };
 
+export const countryFlags = {
+  "Brazil": "br",
+  "West Germany": "de",
+  "Germany": "de",
+  "Netherlands": "nl",
+  "Argentina": "ar",
+  "France": "fr",
+  "Italy": "it",
+  "Spain": "es",
+  "Croatia": "hr",
+  "Morocco": "ma",
+  "England": "gb-eng",
+};
+
 export const historicOpponents = [
   { name: "1954 Hungary", attack: 90, midfield: 84, defense: 68, era: "Golden Age" },
   { name: "1958 Sweden", attack: 78, midfield: 76, defense: 80, era: "Nordic Grit" },
