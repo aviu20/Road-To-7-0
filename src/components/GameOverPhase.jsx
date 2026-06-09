@@ -1,9 +1,9 @@
-import { Trophy, Star, RotateCcw, Award } from "lucide-react";
+import { Trophy, Star, RotateCcw, Award, BookOpen } from "lucide-react";
 import { calculateTeamStats, checkRecordBreakers } from "../engine/gameEngine";
 import { countryFlags } from "../data/legends";
 import PlayerCard from "./PlayerCard";
 
-export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart }) {
+export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart, collectionStats }) {
   const teamStats = calculateTeamStats(squad);
   const records = checkRecordBreakers(squad, results);
   const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
@@ -73,6 +73,34 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
             ))}
           </div>
         </div>
+
+        {/* Collection Progress */}
+        {collectionStats && (
+          <div className="mb-8 p-4 rounded-xl bg-surface border border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gold/10">
+                <BookOpen className="w-5 h-5 text-gold" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold text-white">Collection</span>
+                  <span className="text-sm text-gold font-bold">
+                    {collectionStats.collected}/{collectionStats.total}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-700 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-gold/80 to-gold transition-all"
+                    style={{ width: `${collectionStats.percentage}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {collectionStats.percentage}% of all players discovered — draft again to find more!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Restart */}
         <div className="text-center pb-8">
