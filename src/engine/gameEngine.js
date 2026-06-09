@@ -346,18 +346,70 @@ function simulateMatch(team, opponent, round, squad) {
   };
 }
 
+const goalTemplates = {
+  FW: [
+    (name, min) => `${min}' ⚽ GOAL! ${name} finishes clinically from inside the box!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} volleys it into the bottom corner!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} cuts inside and curls one past the keeper!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} gets on the end of a through ball and slots home!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} beats the offside trap and chips the keeper!`,
+    (name, min) => `${min}' ⚽ GOAL! A moment of brilliance — ${name} dribbles past two and fires home!`,
+  ],
+  MID: [
+    (name, min) => `${min}' ⚽ GOAL! ${name} unleashes a thunderbolt from 25 yards!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} arrives late in the box and smashes it in!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} picks up a loose ball and drives it low into the corner!`,
+    (name, min) => `${min}' ⚽ GOAL! A surging run from ${name} ends with a powerful strike!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} threads a one-two and finishes with composure!`,
+  ],
+  DEF: [
+    (name, min) => `${min}' ⚽ GOAL! ${name} rises highest and heads home from a corner!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} bombs forward and lashes it into the net!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} scores with a towering header from a free kick!`,
+    (name, min) => `${min}' ⚽ GOAL! An overlapping run from ${name} — and a clinical finish!`,
+  ],
+  GK: [
+    (name, min) => `${min}' ⚽ GOAL! Unbelievable — ${name} scores from a goal kick caught in the wind!`,
+    (name, min) => `${min}' ⚽ GOAL! ${name} charges up for the corner and heads it in!`,
+  ],
+};
+
+const oppGoalTemplates = [
+  (min) => `${min}' ⚽ Opponent scores from a quick counterattack...`,
+  (min) => `${min}' ⚽ A defensive lapse — opponent capitalizes and scores...`,
+  (min) => `${min}' ⚽ Opponent finds space on the edge of the box and finishes...`,
+  (min) => `${min}' ⚽ A scrappy goal from a set piece — opponent heads it in...`,
+  (min) => `${min}' ⚽ Opponent threads a pass through the defense and converts...`,
+  (min) => `${min}' ⚽ A deflection falls kindly for the opponent — they make no mistake...`,
+];
+
+const drawColorTemplates = [
+  (min) => `${min}' A crunching tackle in midfield sets the tone.`,
+  (min) => `${min}' The woodwork rattles — so close!`,
+  (min) => `${min}' A brilliant save denies what looked like a certain goal.`,
+  (min) => `${min}' Tempers flare after a late challenge — the ref reaches for yellow.`,
+  (min) => `${min}' A sweeping move down the wing comes to nothing.`,
+];
+
 function generateMatchEvents(teamGoals, oppGoals, squad) {
   const events = [];
   const totalGoals = teamGoals + oppGoals;
 
   if (totalGoals === 0) {
-    events.push({ minute: 45, type: "info", team: "neutral", text: "45' A tense, goalless first half." });
+    const color1 = drawColorTemplates[Math.floor(Math.random() * drawColorTemplates.length)];
+    const color2 = drawColorTemplates[Math.floor(Math.random() * drawColorTemplates.length)];
+    events.push({ minute: 34, type: "info", team: "neutral", text: color1(34) });
+    events.push({ minute: 67, type: "info", team: "neutral", text: color2(67) });
     events.push({ minute: 90, type: "info", team: "neutral", text: "90' Full time — a hard-fought 0-0 draw." });
     return events;
   }
 
-  // Pick scorers from the user's squad, weighted by position
-  const scorerPool = squad ? [...squad].sort((a, b) => b.stats.attack - a.stats.attack) : [];
+  const scorerPool = squad
+    ? [...squad].sort((a, b) => {
+        const posWeight = { FW: 4, MID: 2, DEF: 1, GK: 0 };
+        return (posWeight[b.position] || 0) + b.stats.attack - (posWeight[a.position] || 0) - a.stats.attack;
+      })
+    : [];
 
   const minutes = [];
   for (let i = 0; i < totalGoals; i++) {
@@ -367,6 +419,8 @@ function generateMatchEvents(teamGoals, oppGoals, squad) {
 
   let tg = 0, og = 0;
   let scorerIndex = 0;
+  const usedTemplates = new Set();
+
   for (let i = 0; i < minutes.length; i++) {
     if (tg < teamGoals && (og >= oppGoals || Math.random() < teamGoals / totalGoals)) {
       tg++;
@@ -374,11 +428,23 @@ function generateMatchEvents(teamGoals, oppGoals, squad) {
         ? scorerPool[scorerIndex % scorerPool.length]
         : null;
       scorerIndex++;
-      const name = scorer ? scorer.name : "Your team";
-      events.push({ minute: minutes[i], type: "goal", team: "player", text: `${minutes[i]}' ⚽ GOAL! ${name} scores!` });
+
+      let text;
+      if (scorer) {
+        const templates = goalTemplates[scorer.position] || goalTemplates.MID;
+        let idx;
+        do { idx = Math.floor(Math.random() * templates.length); }
+        while (usedTemplates.has(`${scorer.position}-${idx}`) && usedTemplates.size < templates.length * 4);
+        usedTemplates.add(`${scorer.position}-${idx}`);
+        text = templates[idx](scorer.name, minutes[i]);
+      } else {
+        text = `${minutes[i]}' ⚽ GOAL! Your team scores!`;
+      }
+      events.push({ minute: minutes[i], type: "goal", team: "player", text });
     } else {
       og++;
-      events.push({ minute: minutes[i], type: "goal", team: "opponent", text: `${minutes[i]}' ⚽ Opponent scores...` });
+      const template = oppGoalTemplates[Math.floor(Math.random() * oppGoalTemplates.length)];
+      events.push({ minute: minutes[i], type: "goal", team: "opponent", text: template(minutes[i]) });
     }
   }
 
@@ -389,24 +455,11 @@ function applySuperPowers(squad, baseStats) {
   let bonusAtk = 0, bonusMid = 0, bonusDef = 0;
 
   for (const player of squad) {
-    if (!player.superpower) continue;
-    const desc = player.superpower.description.toLowerCase();
-
-    const allStatsMatch = desc.match(/\+(\d+) to all squad stats/);
-    if (allStatsMatch) {
-      const v = parseInt(allStatsMatch[1]);
-      bonusAtk += v; bonusMid += v; bonusDef += v;
-      continue;
-    }
-
-    const boosts = desc.matchAll(/\+(\d+)\s+(atk|mid|def|attack|midfield|defense)/gi);
-    for (const m of boosts) {
-      const v = parseInt(m[1]);
-      const stat = m[2].toLowerCase();
-      if (stat === "atk" || stat === "attack") bonusAtk += v;
-      if (stat === "mid" || stat === "midfield") bonusMid += v;
-      if (stat === "def" || stat === "defense") bonusDef += v;
-    }
+    const boosts = player.superpower?.boosts;
+    if (!boosts) continue;
+    bonusAtk += boosts.attack || 0;
+    bonusMid += boosts.midfield || 0;
+    bonusDef += boosts.defense || 0;
   }
 
   return {

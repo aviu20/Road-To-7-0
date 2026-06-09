@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { playingStyles } from "./data/legends";
+import { playingStyles, legends } from "./data/legends";
 import {
   PHASES,
   createInitialState,
@@ -7,6 +7,7 @@ import {
   generateDraftChoices,
   simulateTournament,
 } from "./engine/gameEngine";
+import { addRunToCollection, getCollectionStats } from "./engine/collection";
 import SetupPhase from "./components/SetupPhase";
 import DraftPhase from "./components/DraftPhase";
 import TournamentPhase from "./components/TournamentPhase";
@@ -14,6 +15,11 @@ import GameOverPhase from "./components/GameOverPhase";
 
 export default function App() {
   const [state, setState] = useState(createInitialState);
+  const [collectionStats, setCollectionStats] = useState(() => getCollectionStats(legends.length));
+
+  const refreshCollection = useCallback(() => {
+    setCollectionStats(getCollectionStats(legends.length));
+  }, []);
 
   const handleSelectStyle = useCallback((styleId) => {
     const style = playingStyles.find((s) => s.id === styleId);
@@ -71,8 +77,13 @@ export default function App() {
   }, []);
 
   const handleTournamentComplete = useCallback(() => {
-    setState((s) => ({ ...s, phase: PHASES.GAME_OVER }));
-  }, []);
+    setState((s) => {
+      const won = !s.eliminated && s.tournamentResults.length === 7;
+      addRunToCollection(s.squad, won);
+      return { ...s, phase: PHASES.GAME_OVER };
+    });
+    refreshCollection();
+  }, [refreshCollection]);
 
   const handleRestart = useCallback(() => {
     setState(createInitialState());
@@ -81,7 +92,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0a0f1a]">
       {state.phase === PHASES.SETUP && (
-        <SetupPhase onSelectStyle={handleSelectStyle} />
+        <SetupPhase onSelectStyle={handleSelectStyle} collectionStats={collectionStats} />
       )}
       {state.phase === PHASES.DRAFT && (
         <DraftPhase
@@ -108,6 +119,7 @@ export default function App() {
           eliminated={state.eliminated}
           finalRound={state.finalRound}
           onRestart={handleRestart}
+          collectionStats={collectionStats}
         />
       )}
     </div>
