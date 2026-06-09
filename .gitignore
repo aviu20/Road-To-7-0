@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 .playwright-mcp
+.claude/
+
+# Local scrape and generated data intermediates
+guardian_players*.json
+src/data/wc2026_generated.js
+scripts/merge_legends.js
+scripts/wc2026_arrays.txt
+scripts/wc2026_spreads.txt
 
 # Editor directories and files
 .vscode/*
