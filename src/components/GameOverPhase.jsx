@@ -1,15 +1,52 @@
-import { Trophy, Star, RotateCcw, Award, BookOpen } from "lucide-react";
+import { useState } from "react";
+import { Trophy, Star, RotateCcw, Award, BookOpen, Share2, Check } from "lucide-react";
 import { calculateTeamStats, checkRecordBreakers } from "../engine/gameEngine";
 import { countryFlags } from "../data/legends";
 import PlayerCard from "./PlayerCard";
 
+function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins) {
+  const legends = squad.filter((p) => p.isMarqueeLegend);
+  const topNames = legends.slice(0, 3).map((p) => p.name);
+  const nameStr = topNames.length > 0 ? topNames.join(", ") : squad.slice(0, 3).map((p) => p.name).join(", ");
+
+  const resultLine = wonTournament
+    ? `I went ${wins}-0 and won the World Cup!`
+    : `Eliminated in the ${results[results.length - 1].round}`;
+
+  const lines = [
+    `⚽ Road to 7-0 — World Cup Draft`,
+    ``,
+    resultLine,
+    `${totalGoals} goals in ${results.length} matches`,
+    ``,
+    `My squad: ${nameStr}${legends.length > 3 ? ` +${legends.length - 3} more legends` : ""}`,
+    ``,
+    `Draft your dream XI → road-to-7-0.vercel.app`,
+  ];
+  return lines.join("\n");
+}
+
 export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart, collectionStats }) {
+  const [copied, setCopied] = useState(false);
   const teamStats = calculateTeamStats(squad);
   const records = checkRecordBreakers(squad, results);
   const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
   const cleanSheets = results.filter((r) => r.cleanSheet).length;
   const wins = results.filter((r) => r.result === "W").length;
   const wonTournament = !eliminated && results.length === 7;
+
+  const handleShare = async () => {
+    const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Road to 7-0", text, url: "https://road-to-7-0.vercel.app" });
+        return;
+      } catch {}
+    }
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -102,8 +139,19 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           </div>
         )}
 
-        {/* Restart */}
-        <div className="text-center pb-8">
+        {/* Actions */}
+        <div className="flex items-center justify-center gap-3 pb-8">
+          <button
+            onClick={handleShare}
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors cursor-pointer
+                       ${copied
+                         ? "bg-emerald-accent/20 text-emerald-accent border border-emerald-accent/40"
+                         : "bg-surface text-white border border-gray-600 hover:border-gray-400"
+                       }`}
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            {copied ? "Copied!" : "Share Result"}
+          </button>
           <button
             onClick={onRestart}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-accent text-white font-semibold
