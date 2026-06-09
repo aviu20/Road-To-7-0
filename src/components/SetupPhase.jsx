@@ -15,11 +15,11 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-          World Cup <span className="text-emerald-accent">Draft</span>
+          Road to <span className="text-emerald-accent">7-0</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-md mx-auto">
-          Draft legendary icons from World Cup history. Build your dream squad.
-          Can you conquer the tournament?
+          Draft legendary icons from every World Cup era. Build your dream XI.
+          Can you go 7-0 and conquer the tournament?
         </p>
       </div>
 
