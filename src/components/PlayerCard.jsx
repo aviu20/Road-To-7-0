@@ -1,5 +1,5 @@
 import { Star } from "lucide-react";
-import { positionLabels, countryFlags } from "../data/legends";
+import { positionLabels, roleLabels, countryFlags } from "../data/legends";
 
 function Flag({ country, size = "w-5" }) {
   const code = countryFlags[country];
@@ -29,7 +29,7 @@ export default function PlayerCard({ player, onPick, compact = false }) {
         ${isLegend ? "bg-gold/5 border-gold/30" : "bg-surface-light border-gray-700"}`}>
         {isLegend && <Star className="w-3.5 h-3.5 text-gold fill-gold shrink-0" />}
         <div className={`px-2 py-0.5 rounded text-xs font-bold border ${positionColors[player.position]}`}>
-          {player.position}
+          {player.role}
         </div>
         <div className="min-w-0">
           <span className={`font-medium text-sm ${isLegend ? "text-gold" : "text-white"}`}>{player.name}</span>
@@ -64,7 +64,7 @@ export default function PlayerCard({ player, onPick, compact = false }) {
 
       <div className="flex items-start justify-between mb-3">
         <div className={`px-2 py-0.5 rounded text-xs font-bold border ${positionColors[player.position]}`}>
-          {positionLabels[player.position]}
+          {roleLabels[player.role]}
         </div>
         <div className={`text-2xl font-bold ${isLegend ? "text-gold" : "text-emerald-accent"}`}>{player.rating}</div>
       </div>

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { RotateCcw, Zap } from "lucide-react";
-import { positionLabels } from "../data/legends";
+import { roleLabels } from "../data/legends";
 import PlayerCard from "./PlayerCard";
 import PitchView from "./PitchView";
 
-const FLAG_EMOJIS = ["🇧🇷", "🇦🇷", "🇩🇪", "🇫🇷", "🇮🇹", "🇳🇱", "🇬🇧", "🇺🇾", "🇪🇸", "🇵🇹", "🇭🇷", "🇲🇦"];
-const YEARS = [1958, 1962, 1966, 1970, 1974, 1978, 1982, 1986, 1990, 1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022];
+const FLAG_EMOJIS = ["🇧🇷", "🇦🇷", "🇩🇪", "🇫🇷", "🇮🇹", "🇳🇱", "🇬🇧", "🇺🇾", "🇪🇸", "🇵🇹", "🇭🇷", "🇲🇦", "🇺🇸"];
+const YEARS = [1958, 1962, 1966, 1970, 1974, 1978, 1982, 1986, 1990, 1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022, 2026];
 
 export default function DraftPhase({ formationKey, slots, currentSlot, choices, respinsLeft, onPick, onRespin }) {
   const [spinning, setSpinning] = useState(true);
@@ -28,7 +28,7 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
     return () => clearInterval(interval);
   }, [currentSlot]);
 
-  const currentPosition = slots[currentSlot]?.position;
+  const currentRole = slots[currentSlot]?.role;
   const filledCount = slots.filter((s) => s.filled).length;
 
   return (
@@ -39,7 +39,7 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
           <div>
             <h2 className="text-2xl font-bold text-white">Draft Round {filledCount + 1}/11</h2>
             <p className="text-gray-400">
-              Picking: <span className="text-emerald-accent font-semibold">{positionLabels[currentPosition]}</span>
+              Picking: <span className="text-emerald-accent font-semibold">{roleLabels[currentRole]}</span>
             </p>
           </div>
           <div className="flex items-center gap-2">

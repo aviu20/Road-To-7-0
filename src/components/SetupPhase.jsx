@@ -1,19 +1,14 @@
-import { Trophy, Users, Shield } from "lucide-react";
-import { formations } from "../data/legends";
+import { Swords, Shield, Target, Scale } from "lucide-react";
+import { playingStyles } from "../data/legends";
 
-const formationIcons = {
-  "4-3-3": <Trophy className="w-6 h-6" />,
-  "4-4-2": <Users className="w-6 h-6" />,
-  "3-5-2": <Shield className="w-6 h-6" />,
+const styleIcons = {
+  attacking: <Swords className="w-6 h-6" />,
+  defensive: <Shield className="w-6 h-6" />,
+  tikitaka: <Target className="w-6 h-6" />,
+  balanced: <Scale className="w-6 h-6" />,
 };
 
-const formationDescriptions = {
-  "4-3-3": "Attacking — 4 Defenders, 3 Midfielders, 3 Forwards",
-  "4-4-2": "Balanced — 4 Defenders, 4 Midfielders, 2 Forwards",
-  "3-5-2": "Midfield Control — 3 Defenders, 5 Midfielders, 2 Forwards",
-};
-
-export default function SetupPhase({ onSelectFormation }) {
+export default function SetupPhase({ onSelectStyle }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="text-center mb-12">
@@ -28,22 +23,23 @@ export default function SetupPhase({ onSelectFormation }) {
 
       <div className="w-full max-w-lg space-y-4">
         <h2 className="text-xl font-semibold text-gray-200 text-center mb-6">
-          Choose Your Formation
+          Choose Your Playing Style
         </h2>
 
-        {Object.keys(formations).map((key) => (
+        {playingStyles.map((style) => (
           <button
-            key={key}
-            onClick={() => onSelectFormation(key)}
+            key={style.id}
+            onClick={() => onSelectStyle(style.id)}
             className="w-full group flex items-center gap-4 p-5 rounded-xl bg-surface border border-gray-700
                        hover:border-emerald-accent hover:bg-surface-light transition-all duration-200 cursor-pointer"
           >
             <div className="p-3 rounded-lg bg-emerald-accent/10 text-emerald-accent group-hover:bg-emerald-accent/20 transition-colors">
-              {formationIcons[key]}
+              {styleIcons[style.id]}
             </div>
             <div className="text-left">
-              <div className="text-xl font-bold text-white">{key}</div>
-              <div className="text-sm text-gray-400">{formationDescriptions[key]}</div>
+              <div className="text-xl font-bold text-white">{style.name}</div>
+              <div className="text-xs text-emerald-accent/70 font-medium mb-1">Formation: {style.formation}</div>
+              <div className="text-sm text-gray-400">{style.description}</div>
             </div>
           </button>
         ))}

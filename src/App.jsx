@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { formations } from "./data/legends";
+import { playingStyles } from "./data/legends";
 import {
   PHASES,
   createInitialState,
@@ -15,10 +15,11 @@ import GameOverPhase from "./components/GameOverPhase";
 export default function App() {
   const [state, setState] = useState(createInitialState);
 
-  const handleSelectFormation = useCallback((formationKey) => {
-    const config = formations[formationKey];
-    const slots = buildSlots(config);
-    const choices = generateDraftChoices(slots[0].position, []);
+  const handleSelectStyle = useCallback((styleId) => {
+    const style = playingStyles.find((s) => s.id === styleId);
+    const formationKey = style.formation;
+    const slots = buildSlots(formationKey);
+    const choices = generateDraftChoices(slots[0].role, []);
     setState((s) => ({
       ...s,
       phase: PHASES.DRAFT,
@@ -50,7 +51,7 @@ export default function App() {
         };
       }
 
-      const choices = generateDraftChoices(newSlots[nextSlot].position, newSquad);
+      const choices = generateDraftChoices(newSlots[nextSlot].role, newSquad);
       return {
         ...s,
         slots: newSlots,
@@ -64,7 +65,7 @@ export default function App() {
   const handleRespin = useCallback(() => {
     setState((s) => {
       if (s.respinsLeft <= 0) return s;
-      const choices = generateDraftChoices(s.slots[s.currentSlot].position, s.squad);
+      const choices = generateDraftChoices(s.slots[s.currentSlot].role, s.squad);
       return { ...s, respinsLeft: s.respinsLeft - 1, draftChoices: choices };
     });
   }, []);
@@ -80,7 +81,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0a0f1a]">
       {state.phase === PHASES.SETUP && (
-        <SetupPhase onSelectFormation={handleSelectFormation} />
+        <SetupPhase onSelectStyle={handleSelectStyle} />
       )}
       {state.phase === PHASES.DRAFT && (
         <DraftPhase
