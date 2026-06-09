@@ -1,32 +1,15 @@
 import { formationPositions } from "../data/legends";
 
-const positionColors = {
+const roleColors = {
   GK: "#f59e0b",
-  DEF: "#3b82f6",
-  MID: "#10b981",
-  FW: "#ef4444",
+  LB: "#3b82f6", CB: "#3b82f6", RB: "#3b82f6",
+  CDM: "#10b981", CM: "#10b981", CAM: "#10b981",
+  LW: "#ef4444", RW: "#ef4444", ST: "#ef4444",
 };
 
 export default function PitchView({ formationKey, slots, currentSlot }) {
   const positions = formationPositions[formationKey];
   if (!positions) return null;
-
-  const allDots = [];
-  let slotIndex = 0;
-
-  for (const pos of ["GK", "DEF", "MID", "FW"]) {
-    const coords = positions[pos];
-    for (let i = 0; i < coords.length; i++) {
-      allDots.push({
-        pos,
-        x: coords[i].x,
-        y: coords[i].y,
-        slot: slots[slotIndex],
-        index: slotIndex,
-      });
-      slotIndex++;
-    }
-  }
 
   return (
     <div className="relative w-full max-w-md mx-auto aspect-[3/4] rounded-xl overflow-hidden border border-emerald-accent/30">
@@ -46,17 +29,18 @@ export default function PitchView({ formationKey, slots, currentSlot }) {
       </div>
 
       {/* Player dots */}
-      {allDots.map((dot, i) => {
-        const filled = dot.slot?.filled;
-        const isCurrent = dot.index === currentSlot;
-        const color = positionColors[dot.pos];
-        const playerName = dot.slot?.player?.name?.split(" ").pop();
+      {positions.map((pos, i) => {
+        const slot = slots[i];
+        const filled = slot?.filled;
+        const isCurrent = i === currentSlot;
+        const color = roleColors[pos.role] || "#10b981";
+        const playerName = slot?.player?.name?.split(" ").pop();
 
         return (
           <div
             key={i}
             className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
-            style={{ left: `${dot.x}%`, top: `${dot.y}%` }}
+            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
@@ -72,7 +56,7 @@ export default function PitchView({ formationKey, slots, currentSlot }) {
                 boxShadow: filled ? `0 0 12px ${color}50` : "none",
               }}
             >
-              {filled ? (dot.slot.player.rating) : dot.pos}
+              {filled ? slot.player.rating : pos.role}
             </div>
             <span className={`text-[10px] mt-0.5 max-w-16 truncate text-center leading-tight
               ${filled ? "text-white font-medium" : "text-white/40"}`}>

@@ -1,4 +1,4 @@
-import { legends, historicOpponents } from "../data/legends";
+import { legends, formations, roleToPosition, roleCompatibility, historicOpponents } from "../data/legends";
 
 export const PHASES = {
   SETUP: "SETUP",
@@ -24,36 +24,38 @@ export function createInitialState() {
   };
 }
 
-export function buildSlots(formation) {
-  const slots = [];
-  const config = formation;
-  slots.push({ position: "GK", filled: false, player: null });
-  for (let i = 0; i < config.DEF; i++) slots.push({ position: "DEF", filled: false, player: null });
-  for (let i = 0; i < config.MID; i++) slots.push({ position: "MID", filled: false, player: null });
-  for (let i = 0; i < config.FW; i++) slots.push({ position: "FW", filled: false, player: null });
-  return slots;
+export function buildSlots(formationKey) {
+  const formation = formations[formationKey];
+  return formation.slots.map((role) => ({
+    role,
+    position: roleToPosition[role],
+    filled: false,
+    player: null,
+  }));
 }
 
-export function generateDraftChoices(position, alreadyDrafted) {
+export function generateDraftChoices(role, alreadyDrafted) {
   const draftedIds = new Set(alreadyDrafted.map((p) => p.id));
 
+  // 1. Exact role match
   const exactMatch = legends.filter(
-    (l) => l.position === position && !draftedIds.has(l.id)
+    (l) => l.role === role && !draftedIds.has(l.id)
   );
+  if (exactMatch.length >= 3) return shuffleArray(exactMatch).slice(0, 3);
 
-  if (exactMatch.length >= 3) {
-    return shuffleArray(exactMatch).slice(0, 3);
-  }
+  // 2. Compatible roles
+  const compatible = roleCompatibility[role] || [];
+  const expandedPool = legends.filter(
+    (l) => (l.role === role || compatible.includes(l.role)) && !draftedIds.has(l.id)
+  );
+  if (expandedPool.length >= 3) return shuffleArray(expandedPool).slice(0, 3);
 
-  const fallbackPool = legends.filter((l) => {
-    if (draftedIds.has(l.id)) return false;
-    if (l.position === position) return true;
-    if (position === "GK") return false;
-    if (l.position === "GK") return false;
-    return true;
-  });
-
-  return shuffleArray(fallbackPool).slice(0, 3);
+  // 3. Same general position
+  const genPos = roleToPosition[role];
+  const posPool = legends.filter(
+    (l) => l.position === genPos && !draftedIds.has(l.id)
+  );
+  return shuffleArray(posPool).slice(0, 3);
 }
 
 // ─── Position-weighted stat calculation ───────────────────────

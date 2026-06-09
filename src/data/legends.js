@@ -1,4 +1,67 @@
+const roleToPosition = {
+  ST: "FW", LW: "FW", RW: "FW",
+  CAM: "MID", CM: "MID", CDM: "MID",
+  LB: "DEF", CB: "DEF", RB: "DEF",
+  GK: "GK",
+};
+
+const defaultRole = { FW: "ST", MID: "CM", DEF: "CB", GK: "GK" };
+
+const playerRoles = {
+  // Brazil 1970
+  "jairzinho_1970": "RW", "carlos_alberto_1970": "RB", "rivelino_1970": "LW",
+  "clodoaldo_1970": "CDM", "everaldo_1970": "LB",
+  // West Germany 1974
+  "berti_vogts_1974": "RB", "paul_breitner_1974": "LB", "hoeness_1974": "CAM",
+  "grabowski_1974": "RW", "holzenbein_1974": "LW",
+  // Netherlands 1974
+  "rensenbrink_1974": "LW", "rep_1974": "RW", "krol_1974": "LB",
+  "jansen_1974": "CDM", "suurbier_1974": "RB",
+  // Argentina 1986
+  "maradona_1986": "CAM", "cuciuffo_1986": "RB", "olarticoechea_1986": "LB",
+  "batista_1986": "CDM",
+  // West Germany 1990
+  "brehme_1990": "LB", "berthold_1990": "RB", "buchwald_1990": "CDM",
+  "hassler_1990": "CAM", "littbarski_1990": "RW",
+  // Brazil 1994
+  "jorginho_1994": "RB", "branco_1994": "LB", "dunga_1994": "CDM",
+  "mauro_silva_1994": "CDM", "zinho_1994": "CAM",
+  // France 1998
+  "thuram_1998": "RB", "lizarazu_1998": "LB", "deschamps_1998": "CDM",
+  "zidane_1998": "CAM",
+  // Brazil 2002
+  "roberto_carlos_2002": "LB", "cafu_2002": "RB", "ronaldinho_2002": "CAM",
+  "rivaldo_2002": "LW", "edmilson_2002": "CDM", "gilberto_silva_2002": "CDM",
+  // Italy 2006
+  "pirlo_2006": "CDM", "zambrotta_2006": "RB", "grosso_2006": "LB",
+  "gattuso_2006": "CDM", "camoranesi_2006": "RW", "totti_2006": "CAM", "del_piero_2006": "LW",
+  // Spain 2010
+  "busquets_2010": "CDM", "xabi_alonso_2010": "CDM", "capdevila_2010": "LB", "pedro_2010": "RW",
+  // Germany 2014
+  "lahm_2014": "RB", "howedes_2014": "LB", "khedira_2014": "CDM",
+  "ozil_2014": "CAM", "thomas_muller_2014": "RW",
+  // France 2018
+  "mbappe_2018": "LW", "griezmann_2018": "CAM", "kante_2018": "CDM",
+  "pavard_2018": "RB", "hernandez_2018": "LB",
+  // Croatia 2018
+  "vrsaljko_2018": "RB", "strinic_2018": "LB", "brozovic_2018": "CDM",
+  "rebic_2018": "RW", "perisic_2018": "LW",
+  // Argentina 2022
+  "messi_2022": "RW", "di_maria_2022": "LW", "molina_2022": "RB", "tagliafico_2022": "LB",
+  // Morocco 2022
+  "hakimi_2022": "RB", "amrabat_2022": "CDM", "mazraoui_2022": "LB",
+  "ziyech_2022": "RW", "boufal_2022": "LW",
+  // England 1966
+  "george_cohen_1966": "RB", "ray_wilson_1966": "LB", "nobby_stiles_1966": "CDM",
+  "martin_peters_1966": "CAM",
+};
+
 function p(id, name, country, year, pos, rating, atk, mid, def, trivia, opts = {}) {
+  // Derive position from role if pos is a specific role (ST, LW, etc.)
+  const position = roleToPosition[pos] || pos;
+  // Assign role: if pos was already a specific role use it, otherwise check lookup, otherwise use default
+  const role = roleToPosition[pos] ? pos : (playerRoles[id] || defaultRole[pos] || pos);
+
   const defaultRecords = {
     FW: { metric: "goals", value: 4, headline: `${name} would be proud — your attack was clinical!` },
     MID: { metric: "goals", value: 3, headline: `${name}'s spirit lived on in your midfield!` },
@@ -6,12 +69,12 @@ function p(id, name, country, year, pos, rating, atk, mid, def, trivia, opts = {
     GK: { metric: "clean_sheets", value: 3, headline: `${name} was a wall between the posts!` },
   };
   return {
-    id, name, country, year, position: pos, rating,
+    id, name, country, year, position, role, rating,
     stats: { attack: atk, midfield: mid, defense: def },
     trivia,
     isMarqueeLegend: opts.legend || false,
     superpower: opts.superpower || null,
-    recordThreshold: opts.record || defaultRecords[pos],
+    recordThreshold: opts.record || defaultRecords[position],
   };
 }
 
@@ -523,6 +586,110 @@ const england1966 = [
 ];
 
 // ============================================================
+// 17. USA 2026 — The Hosts
+// ============================================================
+const usa2026 = [
+  p("turner_2026", "Matt Turner", "USA", 2026, "GK", 83, 8, 15, 84,
+    "The hosts' first-choice goalkeeper brings shot-stopping ability honed in the Premier League to the biggest stage on home soil."),
+  p("dest_2026", "Sergiño Dest", "USA", 2026, "RB", 84, 48, 58, 83,
+    "A Dutch-born American who chose the Stars and Stripes, Dest combines Barcelona-trained technique with attacking fullback instincts."),
+  p("richards_2026", "Chris Richards", "USA", 2026, "CB", 84, 22, 48, 86,
+    "A composed, ball-playing center-back who developed at Bayern Munich and represents the new generation of American defenders."),
+  p("m_robinson_2026", "Miles Robinson", "USA", 2026, "CB", 83, 20, 42, 85,
+    "A physical, aggressive center-back whose recovery pace and aerial dominance anchor the American backline."),
+  p("a_robinson_2026", "Antonee Robinson", "USA", 2026, "LB", 85, 42, 58, 85,
+    "A tireless left-back whose lung-busting overlapping runs from Fulham have made him one of the Premier League's most dangerous fullbacks.",
+    { legend: true, superpower: { name: "Jedi", description: "+2 DEF, +2 MID" } }),
+  p("adams_2026", "Tyler Adams", "USA", 2026, "CDM", 85, 35, 86, 70,
+    "The youngest-ever US captain at a World Cup (2022), Adams is a pressing machine who wins the ball back and keeps things simple."),
+  p("mckennie_2026", "Weston McKennie", "USA", 2026, "CM", 86, 60, 86, 58,
+    "A box-to-box midfielder with Juventus pedigree whose energy, aerial ability, and late runs into the box make him a unique threat."),
+  p("reyna_2026", "Giovanni Reyna", "USA", 2026, "CAM", 87, 80, 86, 32,
+    "The son of USMNT legend Claudio Reyna, Gio's silky technique and vision at Borussia Dortmund mark him as American soccer's brightest talent.",
+    { legend: true, superpower: { name: "American Dream", description: "+3 MID, +2 ATK" },
+      record: { metric: "goals", value: 5, headline: "The American Dream — Reyna lit up the home World Cup like his father never could!" } }),
+  p("pulisic_2026", "Christian Pulisic", "USA", 2026, "LW", 89, 90, 72, 30,
+    "Captain America — the face of US soccer who has proven himself at Dortmund, Chelsea, and AC Milan. The host nation's talisman for their biggest tournament ever.",
+    { legend: true, superpower: { name: "Captain America", description: "+4 ATK rating" },
+      record: { metric: "goals", value: 6, headline: "Captain America Rises — Pulisic delivered on the biggest stage on home soil!" } }),
+  p("weah_2026", "Timothy Weah", "USA", 2026, "RW", 86, 85, 55, 30,
+    "Son of Ballon d'Or winner George Weah, Tim has carved his own path with blistering pace and directness on the right wing for Juventus."),
+  p("balogun_2026", "Folarin Balogun", "USA", 2026, "ST", 86, 87, 45, 22,
+    "Born in New York, raised in London, the Monaco striker chose the USA and brings clinical finishing and intelligent movement to the host nation's attack."),
+];
+
+// ============================================================
+// 18. ENGLAND 2026 — The Three Lions
+// ============================================================
+const england2026 = [
+  p("pickford_2026", "Jordan Pickford", "England", 2026, "GK", 86, 10, 18, 88,
+    "England's undisputed number one across three major tournaments, Pickford's penalty shootout heroics and big-game mentality are unmatched."),
+  p("taa_2026", "Trent Alexander-Arnold", "England", 2026, "RB", 89, 70, 80, 82,
+    "The Liverpool right-back whose passing range rivals a playmaker's. Has reinvented the fullback position with quarterback-like distribution.",
+    { legend: true, superpower: { name: "Quarterback", description: "+3 MID, +2 ATK" } }),
+  p("stones_2026", "John Stones", "England", 2026, "CB", 88, 25, 58, 90,
+    "Guardiola transformed Stones from a talented but erratic defender into one of the most composed ball-playing center-backs in the world."),
+  p("guehi_2026", "Marc Guéhi", "England", 2026, "CB", 87, 22, 48, 89,
+    "The Crystal Palace captain whose maturity and reading of the game belie his age — England's defensive future became their present."),
+  p("shaw_2026", "Luke Shaw", "England", 2026, "LB", 86, 40, 58, 87,
+    "Scored in the Euro 2020 Final and has become one of England's most reliable defenders — a warrior who overcame a horrific leg break."),
+  p("rice_2026", "Declan Rice", "England", 2026, "CDM", 90, 42, 90, 80,
+    "The Arsenal midfielder who can do everything — tackle, pass, dribble, and score. England's engine and one of the best midfielders in the world.",
+    { legend: true, superpower: { name: "The Engine", description: "+3 MID, +3 DEF" },
+      record: { metric: "clean_sheets", value: 3, headline: "Rice's Fortress — Your midfield shield was as impenetrable as Declan Rice!" } }),
+  p("bellingham_2026", "Jude Bellingham", "England", 2026, "CAM", 93, 85, 94, 52,
+    "At 22, already a Ballon d'Or contender. Bellingham's move to Real Madrid produced one of the great debut seasons in football history — goals, assists, and Champions League glory.",
+    { legend: true, superpower: { name: "The Prodigy", description: "+4 MID, +3 ATK" },
+      record: { metric: "goals", value: 6, headline: "Bellingham's Brilliance — The prodigy delivered a tournament for the ages!" } }),
+  p("palmer_2026", "Cole Palmer", "England", 2026, "CM", 89, 82, 88, 35,
+    "Chelsea's ice-cold playmaker who scored in the Euro 2024 Final. Palmer's composure under pressure and deadly finishing make him undroppable."),
+  p("foden_2026", "Phil Foden", "England", 2026, "LW", 91, 88, 85, 32,
+    "Manchester City's homegrown genius whose close control and left foot can unlock any defense — England's most technically gifted player.",
+    { legend: true, superpower: { name: "Stockport Iniesta", description: "+3 ATK, +2 MID" } }),
+  p("saka_2026", "Bukayo Saka", "England", 2026, "RW", 91, 90, 72, 35,
+    "Arsenal's Starboy whose directness, work rate, and end product from the right wing terrorize defenders. Overcame his Euro 2020 penalty miss to become England's best attacker.",
+    { legend: true, superpower: { name: "Starboy", description: "+4 ATK rating" } }),
+  p("kane_2026", "Harry Kane", "England", 2026, "ST", 91, 94, 60, 25,
+    "England's all-time top scorer with over 65 international goals. The Bayern Munich striker's finishing, link-up play, and leadership define a generation.",
+    { legend: true, superpower: { name: "The Hurricane", description: "+4 ATK rating" },
+      record: { metric: "goals", value: 8, headline: "Kane's Crowning Glory — Football finally came home thanks to the Hurricane!" } }),
+];
+
+// ============================================================
+// 19. BRAZIL 2026 — The Seleção Reborn
+// ============================================================
+const brazil2026 = [
+  p("alisson_2026", "Alisson", "Brazil", 2026, "GK", 89, 10, 18, 91,
+    "Liverpool's sweeper-keeper whose calmness and shot-stopping have made him arguably the best goalkeeper in the world for half a decade."),
+  p("emerson_2026", "Emerson Royal", "Brazil", 2026, "RB", 84, 45, 55, 84,
+    "A solid right-back who brings defensive reliability and overlapping runs to Brazil's backline."),
+  p("marquinhos_2026", "Marquinhos", "Brazil", 2026, "CB", 89, 25, 52, 93,
+    "PSG's captain and Brazil's defensive rock — a center-back whose reading of the game and composure make him virtually unbeatable one-on-one.",
+    { legend: true, superpower: { name: "The General", description: "+3 DEF rating" } }),
+  p("militao_2026", "Éder Militão", "Brazil", 2026, "CB", 87, 22, 48, 90,
+    "A physically imposing center-back whose pace and aggression at Real Madrid make him one of the most complete defenders in world football."),
+  p("arana_2026", "Guilherme Arana", "Brazil", 2026, "LB", 84, 42, 58, 84,
+    "An attacking left-back whose crossing ability and set-piece delivery provide Brazil with width and creativity from deep."),
+  p("bruno_g_2026", "Bruno Guimarães", "Brazil", 2026, "CDM", 89, 55, 91, 70,
+    "Newcastle's midfield maestro whose elegance on the ball and tactical intelligence have drawn comparisons to Sergio Busquets.",
+    { legend: true, superpower: { name: "The Magician", description: "+3 MID, +2 DEF" },
+      record: { metric: "goals", value: 4, headline: "Bruno's Samba — Your midfield danced through the tournament with Brazilian flair!" } }),
+  p("paqueta_2026", "Lucas Paquetá", "Brazil", 2026, "CAM", 87, 75, 87, 38,
+    "A flair player whose stepovers, body feints, and eye for a pass bring the joy back to Brazilian football."),
+  p("andre_2026", "André", "Brazil", 2026, "CM", 86, 40, 86, 62,
+    "A tireless ball-winner whose energy and pressing from midfield set the tempo for Brazil's new generation."),
+  p("vinicius_2026", "Vinícius Jr", "Brazil", 2026, "LW", 94, 95, 62, 22,
+    "The Ballon d'Or winner whose explosive dribbling, devastating pace, and big-game goals for Real Madrid make him the most exciting player on the planet.",
+    { legend: true, superpower: { name: "Jogo Bonito Reborn", description: "+5 ATK rating" },
+      record: { metric: "goals", value: 8, headline: "Vinícius' Samba — The new king of Brazilian football lit up the World Cup!" } }),
+  p("rodrygo_2026", "Rodrygo", "Brazil", 2026, "RW", 89, 88, 65, 28,
+    "Real Madrid's clutch performer whose Champions League heroics — including a legendary brace against Man City — prove he delivers when it matters most."),
+  p("endrick_2026", "Endrick", "Brazil", 2026, "ST", 87, 89, 45, 22,
+    "The teenage sensation who became Real Madrid's youngest-ever Champions League scorer. At just 19, Endrick carries Brazil's hopes for a new golden era.",
+    { legend: true, superpower: { name: "O Menino", description: "+3 ATK rating" } }),
+];
+
+// ============================================================
 // COMBINED EXPORT
 // ============================================================
 export const legends = [
@@ -542,33 +709,83 @@ export const legends = [
   ...argentina2022,
   ...morocco2022,
   ...england1966,
+  ...usa2026,
+  ...england2026,
+  ...brazil2026,
 ];
 
 export const formations = {
-  "4-3-3": { DEF: 4, MID: 3, FW: 3, GK: 1 },
-  "4-4-2": { DEF: 4, MID: 4, FW: 2, GK: 1 },
-  "3-5-2": { DEF: 3, MID: 5, FW: 2, GK: 1 },
-};
-
-export const formationPositions = {
   "4-3-3": {
-    GK:  [{ x: 50, y: 90 }],
-    DEF: [{ x: 20, y: 72 }, { x: 40, y: 75 }, { x: 60, y: 75 }, { x: 80, y: 72 }],
-    MID: [{ x: 25, y: 50 }, { x: 50, y: 48 }, { x: 75, y: 50 }],
-    FW:  [{ x: 22, y: 25 }, { x: 50, y: 22 }, { x: 78, y: 25 }],
+    name: "4-3-3",
+    slots: ["GK", "LB", "CB", "CB", "RB", "CM", "CM", "CM", "LW", "ST", "RW"],
+  },
+  "5-3-2": {
+    name: "5-3-2",
+    slots: ["GK", "LB", "CB", "CB", "CB", "RB", "CM", "CM", "CM", "ST", "ST"],
+  },
+  "4-2-3-1": {
+    name: "4-2-3-1",
+    slots: ["GK", "LB", "CB", "CB", "RB", "CDM", "CDM", "LW", "CAM", "RW", "ST"],
   },
   "4-4-2": {
-    GK:  [{ x: 50, y: 90 }],
-    DEF: [{ x: 20, y: 72 }, { x: 40, y: 75 }, { x: 60, y: 75 }, { x: 80, y: 72 }],
-    MID: [{ x: 15, y: 48 }, { x: 38, y: 50 }, { x: 62, y: 50 }, { x: 85, y: 48 }],
-    FW:  [{ x: 35, y: 25 }, { x: 65, y: 25 }],
+    name: "4-4-2",
+    slots: ["GK", "LB", "CB", "CB", "RB", "LW", "CM", "CM", "RW", "ST", "ST"],
   },
-  "3-5-2": {
-    GK:  [{ x: 50, y: 90 }],
-    DEF: [{ x: 28, y: 75 }, { x: 50, y: 76 }, { x: 72, y: 75 }],
-    MID: [{ x: 12, y: 48 }, { x: 32, y: 50 }, { x: 50, y: 45 }, { x: 68, y: 50 }, { x: 88, y: 48 }],
-    FW:  [{ x: 35, y: 25 }, { x: 65, y: 25 }],
+};
+
+export const playingStyles = [
+  {
+    id: "attacking",
+    name: "All-Out Attack",
+    formation: "4-3-3",
+    description: "An aggressive 4-3-3 with pacey wingers and a central striker. Width stretches defenses while three midfielders control the tempo.",
   },
+  {
+    id: "defensive",
+    name: "Park the Bus",
+    formation: "5-3-2",
+    description: "Five at the back with wing-backs providing width. Three center-backs absorb pressure while two strikers hit on the counter.",
+  },
+  {
+    id: "tikitaka",
+    name: "Tiki-Taka",
+    formation: "4-2-3-1",
+    description: "Spain's 2010 blueprint. A double pivot shields the defense while a creative trio and playmaker dominate possession behind a lone striker.",
+  },
+  {
+    id: "balanced",
+    name: "The Classic",
+    formation: "4-4-2",
+    description: "The time-tested 4-4-2. Wingers provide width, a midfield pair controls the center, and a strike partnership leads the line.",
+  },
+];
+
+export const formationPositions = {
+  "4-3-3": [
+    { role: "GK", x: 50, y: 90 },
+    { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 75 }, { role: "CB", x: 63, y: 75 }, { role: "RB", x: 85, y: 72 },
+    { role: "CM", x: 25, y: 50 }, { role: "CM", x: 50, y: 48 }, { role: "CM", x: 75, y: 50 },
+    { role: "LW", x: 18, y: 25 }, { role: "ST", x: 50, y: 22 }, { role: "RW", x: 82, y: 25 },
+  ],
+  "5-3-2": [
+    { role: "GK", x: 50, y: 90 },
+    { role: "LB", x: 10, y: 65 }, { role: "CB", x: 30, y: 75 }, { role: "CB", x: 50, y: 77 }, { role: "CB", x: 70, y: 75 }, { role: "RB", x: 90, y: 65 },
+    { role: "CM", x: 30, y: 48 }, { role: "CM", x: 50, y: 46 }, { role: "CM", x: 70, y: 48 },
+    { role: "ST", x: 38, y: 22 }, { role: "ST", x: 62, y: 22 },
+  ],
+  "4-2-3-1": [
+    { role: "GK", x: 50, y: 90 },
+    { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 75 }, { role: "CB", x: 63, y: 75 }, { role: "RB", x: 85, y: 72 },
+    { role: "CDM", x: 38, y: 55 }, { role: "CDM", x: 62, y: 55 },
+    { role: "LW", x: 18, y: 32 }, { role: "CAM", x: 50, y: 30 }, { role: "RW", x: 82, y: 32 },
+    { role: "ST", x: 50, y: 18 },
+  ],
+  "4-4-2": [
+    { role: "GK", x: 50, y: 90 },
+    { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 75 }, { role: "CB", x: 63, y: 75 }, { role: "RB", x: 85, y: 72 },
+    { role: "LW", x: 15, y: 48 }, { role: "CM", x: 38, y: 50 }, { role: "CM", x: 62, y: 50 }, { role: "RW", x: 85, y: 48 },
+    { role: "ST", x: 38, y: 22 }, { role: "ST", x: 62, y: 22 },
+  ],
 };
 
 export const positionLabels = {
@@ -577,6 +794,20 @@ export const positionLabels = {
   DEF: "Defender",
   GK: "Goalkeeper",
 };
+
+export const roleLabels = {
+  GK: "Goalkeeper", LB: "Left Back", CB: "Center Back", RB: "Right Back",
+  CDM: "Def. Midfielder", CM: "Central Midfielder", CAM: "Att. Midfielder",
+  LW: "Left Wing", RW: "Right Wing", ST: "Striker",
+};
+
+export const roleCompatibility = {
+  GK: [], LB: ["RB"], CB: ["LB", "RB"], RB: ["LB"],
+  CDM: ["CM"], CM: ["CDM", "CAM"], CAM: ["CM", "RW", "LW"],
+  LW: ["RW", "ST", "CAM"], RW: ["LW", "ST", "CAM"], ST: ["LW", "RW", "CAM"],
+};
+
+export { roleToPosition };
 
 export const countryFlags = {
   "Brazil": "br",
@@ -590,6 +821,7 @@ export const countryFlags = {
   "Croatia": "hr",
   "Morocco": "ma",
   "England": "gb-eng",
+  "USA": "us",
 };
 
 export const historicOpponents = [
