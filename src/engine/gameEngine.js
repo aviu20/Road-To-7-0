@@ -41,21 +41,38 @@ export function generateDraftChoices(role, alreadyDrafted) {
   const exactMatch = legends.filter(
     (l) => l.role === role && !draftedIds.has(l.id)
   );
-  if (exactMatch.length >= 3) return shuffleArray(exactMatch).slice(0, 3);
+  if (exactMatch.length >= 3) return buildDraftPack(exactMatch, alreadyDrafted.length);
 
   // 2. Compatible roles
   const compatible = roleCompatibility[role] || [];
   const expandedPool = legends.filter(
     (l) => (l.role === role || compatible.includes(l.role)) && !draftedIds.has(l.id)
   );
-  if (expandedPool.length >= 3) return shuffleArray(expandedPool).slice(0, 3);
+  if (expandedPool.length >= 3) return buildDraftPack(expandedPool, alreadyDrafted.length);
 
   // 3. Same general position
   const genPos = roleToPosition[role];
   const posPool = legends.filter(
     (l) => l.position === genPos && !draftedIds.has(l.id)
   );
-  return shuffleArray(posPool).slice(0, 3);
+  return buildDraftPack(posPool, alreadyDrafted.length);
+}
+
+function buildDraftPack(pool, roundIndex) {
+  const legendFeatureRounds = new Set([3, 7, 10]);
+  const shouldFeatureLegend =
+    legendFeatureRounds.has(roundIndex) || Math.random() < 0.12;
+
+  if (shouldFeatureLegend) {
+    const legendsInPool = pool.filter((p) => p.isMarqueeLegend);
+    if (legendsInPool.length > 0) {
+      const legend = shuffleArray(legendsInPool)[0];
+      const regulars = shuffleArray(pool.filter((p) => p.id !== legend.id));
+      return shuffleArray([legend, ...regulars.slice(0, 2)]).slice(0, 3);
+    }
+  }
+
+  return shuffleArray(pool).slice(0, 3);
 }
 
 // ─── Position-weighted stat calculation ───────────────────────
