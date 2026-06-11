@@ -162,20 +162,20 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
   };
 
   return (
-    <div className="min-h-screen px-4 py-8">
+    <div className="min-h-screen px-4 py-8 relative z-10">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 animate-slide-up">
           {wonTournament ? (
             <>
               <Trophy className="w-16 h-16 text-gold mx-auto mb-4 animate-bounce" />
-              <h1 className="text-4xl font-bold text-gold mb-2">World Champions!</h1>
+              <h1 className="font-display text-5xl text-gold mb-2 uppercase tracking-tight">World Champions!</h1>
               <p className="text-gray-400">Your legends conquered the tournament!</p>
             </>
           ) : (
             <>
               <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-white mb-2">Tournament Over</h1>
+              <h1 className="font-display text-4xl text-white mb-2 uppercase tracking-tight">Tournament Over</h1>
               <p className="text-gray-400">Eliminated in the {finalRound}</p>
             </>
           )}
@@ -183,10 +183,16 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
 
         {/* Stats Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <StatBox label="Matches" value={results.length} />
-          <StatBox label="Wins" value={wins} />
-          <StatBox label="Goals" value={totalGoals} />
-          <StatBox label="Clean Sheets" value={cleanSheets} />
+          {[
+            { label: "Matches", value: results.length },
+            { label: "Wins", value: wins },
+            { label: "Goals", value: totalGoals },
+            { label: "Clean Sheets", value: cleanSheets },
+          ].map((stat, i) => (
+            <div key={stat.label} className="animate-card-enter" style={{ animationDelay: `${i * 0.08}s` }}>
+              <StatBox label={stat.label} value={stat.value} />
+            </div>
+          ))}
         </div>
 
         {/* Jobs 8: Collection Highlights */}
@@ -228,8 +234,8 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
 
         {/* Tournament Player Stats */}
         {(tourneyStats.scorers.length > 0 || tourneyStats.saves.length > 0) && (
-          <div className="mb-8 p-5 rounded-xl bg-surface border border-gray-700">
-            <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-4">Player Awards</h3>
+          <div className="mb-8 p-5 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise">
+            <h3 className="font-display text-sm uppercase tracking-[0.15em] text-gray-400 mb-4 relative z-10">Player Awards</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Top Scorers */}
               {tourneyStats.scorers.length > 0 && (
@@ -319,7 +325,7 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
         {/* Records vs Real World Cup History */}
         {recordComparisons.length > 0 && (
           <div className="mb-8">
-            <h3 className="flex items-center gap-2 text-lg font-bold text-gold mb-4">
+            <h3 className="flex items-center gap-2 font-display text-lg uppercase tracking-tight text-gold mb-4">
               <Trophy className="w-5 h-5" />
               vs World Cup Records
             </h3>
@@ -333,7 +339,7 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
 
         {/* Squad */}
         <div className="mb-8">
-          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Your Squad</h3>
+          <h3 className="font-display text-sm uppercase tracking-[0.15em] text-gray-400 mb-3">Your Squad</h3>
           <div className="space-y-2">
             {squad.map((player) => (
               <PlayerCard key={player.id} player={player} compact />
@@ -449,9 +455,9 @@ function RecordComparison({ rec }) {
 
 function StatBox({ label, value }) {
   return (
-    <div className="p-4 rounded-xl bg-surface border border-gray-700 text-center">
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-xs text-gray-400 uppercase tracking-wider">{label}</div>
+    <div className="p-4 rounded-xl bg-surface/80 border border-gray-700/60 text-center surface-noise">
+      <div className="font-display text-3xl text-white relative z-10">{value}</div>
+      <div className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-display relative z-10">{label}</div>
     </div>
   );
 }
