@@ -23,9 +23,13 @@ function getPostMatchLine(match) {
   return "";
 }
 
+const KNOCKOUT_ROUNDS = ["Round of 16", "Quarter-Final", "Semi-Final", "Final"];
+
 export default function TournamentPhase({ results, groupTable, onComplete }) {
   const [visibleMatches, setVisibleMatches] = useState(0);
   const [animatingMatch, setAnimatingMatch] = useState(null);
+  const [showBracket, setShowBracket] = useState(false);
+  const [bracketDone, setBracketDone] = useState(false);
 
   const groupMatches = results.filter((r) => r.round.startsWith("Group"));
   const knockoutMatches = results.filter((r) => !r.round.startsWith("Group"));
@@ -33,13 +37,23 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
   const knockoutVisible = Math.max(0, visibleMatches - groupMatches.length);
   const allRevealed = visibleMatches >= results.length;
 
+  // Show bracket animation when transitioning from group to knockout
+  const justFinishedGroup = isGroupDone && knockoutVisible === 0 && !showBracket && !bracketDone && animatingMatch === null;
+
   const handlePlayMatch = () => {
     if (allRevealed) {
       onComplete();
+    } else if (justFinishedGroup && !bracketDone) {
+      setShowBracket(true);
     } else if (animatingMatch === null) {
       setAnimatingMatch(visibleMatches);
     }
   };
+
+  const handleBracketComplete = useCallback(() => {
+    setShowBracket(false);
+    setBracketDone(true);
+  }, []);
 
   const handleAnimationComplete = useCallback(() => {
     setVisibleMatches((v) => v + 1);
@@ -47,7 +61,6 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
   }, []);
 
   const handleSkip = useCallback(() => {
-    // Skip current animation — immediately complete the match
     setVisibleMatches((v) => v + 1);
     setAnimatingMatch(null);
   }, []);
@@ -57,7 +70,6 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
   // Progressive group table: only show stats for matches already revealed
   const progressiveTable = groupTable ? groupTable.map((team) => {
     if (!team.isUser) return team;
-    // Recalculate user stats based on visible matches only
     const visible = groupMatches.slice(0, visibleMatches);
     const w = visible.filter((m) => m.result === "W").length;
     const d = visible.filter((m) => m.result === "D").length;
@@ -73,70 +85,42 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
     };
   }) : null;
 
-  // Get the next match to be played (for pre-match narrative)
   const nextMatchIdx = animatingMatch !== null ? animatingMatch : visibleMatches;
   const nextMatch = results[nextMatchIdx];
 
+  // Determine qualified state from group table
+  const userQualified = progressiveTable
+    ? progressiveTable.findIndex((t) => t.isUser) < 2
+    : false;
+
   return (
-    <div className="min-h-screen px-4 py-8">
+    <div className="min-h-screen px-4 py-6 pb-32">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <Trophy className="w-10 h-10 text-gold mx-auto mb-3" />
-          <h2 className="text-3xl font-bold text-white">Tournament</h2>
-          <p className="text-gray-400">Your legends take the field...</p>
+        <div className="text-center mb-6">
+          <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
+          <h2 className="text-2xl font-bold text-white">Tournament</h2>
         </div>
 
-        {/* Group Table — progressive stats */}
-        {progressiveTable && visibleMatches > 0 && (
-          <div className="mb-6 p-4 rounded-xl bg-surface border border-gray-700">
-            <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Group Standings</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 text-xs uppercase">
-                  <th className="text-left pb-2 pr-2">#</th>
-                  <th className="text-left pb-2">Team</th>
-                  <th className="text-center pb-2 w-8">P</th>
-                  <th className="text-center pb-2 w-8">W</th>
-                  <th className="text-center pb-2 w-8">D</th>
-                  <th className="text-center pb-2 w-8">L</th>
-                  <th className="text-center pb-2 w-10">GD</th>
-                  <th className="text-center pb-2 w-10 font-bold">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {progressiveTable.map((team, i) => {
-                  const gd = team.goalsFor - team.goalsAgainst;
-                  const qualified = i < 2 && isGroupDone;
-                  return (
-                    <tr
-                      key={team.name}
-                      className={`border-t border-gray-700/50 ${
-                        team.isUser ? "text-emerald-accent font-semibold" : "text-gray-300"
-                      } ${qualified ? "bg-emerald-accent/5" : i >= 2 && isGroupDone ? "opacity-50" : ""}`}
-                    >
-                      <td className="py-2 pr-2 text-gray-500">{i + 1}</td>
-                      <td className="py-2">{team.isUser ? "Your XI" : team.name}</td>
-                      <td className="text-center py-2">{team.played}</td>
-                      <td className="text-center py-2">{team.wins}</td>
-                      <td className="text-center py-2">{team.draws}</td>
-                      <td className="text-center py-2">{team.losses}</td>
-                      <td className="text-center py-2">{gd > 0 ? `+${gd}` : gd}</td>
-                      <td className="text-center py-2 font-bold">{team.points}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {isGroupDone && (
-              <div className="mt-2 text-xs text-gray-500">
-                Top 2 qualify for the knockout rounds
-              </div>
-            )}
-          </div>
+        {/* Group Table — persistent during group stage */}
+        {progressiveTable && !isGroupDone && (
+          <GroupTable table={progressiveTable} isGroupDone={false} />
+        )}
+
+        {/* Final group table — shown after group done, before bracket */}
+        {progressiveTable && isGroupDone && !bracketDone && !showBracket && (
+          <GroupTable table={progressiveTable} isGroupDone={true} qualified={userQualified} />
+        )}
+
+        {/* Bracket Animation */}
+        {showBracket && (
+          <KnockoutBracket
+            knockoutMatches={knockoutMatches}
+            onComplete={handleBracketComplete}
+          />
         )}
 
         {/* Group Matches */}
-        {groupMatches.length > 0 && (visibleMatches > 0 || currentAnimIdx !== null) && (
+        {groupMatches.length > 0 && (visibleMatches > 0 || currentAnimIdx !== null) && !showBracket && (
           <div className="mb-4">
             <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Group Stage</h3>
             <div className="space-y-3">
@@ -156,9 +140,9 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Knockout Matches */}
-        {isGroupDone && (knockoutVisible > 0 || (currentAnimIdx !== null && currentAnimIdx >= groupMatches.length)) && (
+        {bracketDone && (knockoutVisible > 0 || (currentAnimIdx !== null && currentAnimIdx >= groupMatches.length)) && (
           <div className="mb-4">
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2 mt-6">Knockout Rounds</h3>
+            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2 mt-4">Knockout Rounds</h3>
             <div className="space-y-3">
               {knockoutMatches.slice(0, knockoutVisible).map((match, i) => (
                 <MatchCard key={`k${i}`} match={match} />
@@ -176,7 +160,7 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Post-match story beat */}
-        {visibleMatches > 0 && animatingMatch === null && !allRevealed && (
+        {visibleMatches > 0 && animatingMatch === null && !allRevealed && !showBracket && (
           <div className="text-center my-4 animate-fade-in">
             <p className="text-sm text-gray-400 italic">
               {getPostMatchLine(results[visibleMatches - 1])}
@@ -185,7 +169,7 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Pre-match narrative */}
-        {!allRevealed && animatingMatch === null && nextMatch && (
+        {!allRevealed && animatingMatch === null && nextMatch && !showBracket && !justFinishedGroup && bracketDone && (
           <div className="text-center mt-2 mb-4">
             <p className="text-xs text-gray-500">
               Next: <span className="text-white font-medium">Your XI vs {nextMatch.opponent}</span>
@@ -195,29 +179,169 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Play Match / Continue Button */}
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={handlePlayMatch}
-            disabled={animatingMatch !== null}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all cursor-pointer
-                       ${animatingMatch !== null
-                         ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                         : "bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95"
-                       }`}
-          >
-            {allRevealed ? (
-              <>
-                <Trophy className="w-5 h-5" />
-                See Results
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5" />
-                {visibleMatches === 0 && animatingMatch === null ? "Start Tournament" : "Play Next Match"}
-              </>
-            )}
-          </button>
+        {!showBracket && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0f1a] via-[#0a0f1a] to-transparent">
+            <div className="max-w-2xl mx-auto flex justify-center">
+              <button
+                onClick={handlePlayMatch}
+                disabled={animatingMatch !== null}
+                className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold transition-all cursor-pointer text-base
+                           ${animatingMatch !== null
+                             ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                             : "bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95 shadow-lg shadow-emerald-accent/20"
+                           }`}
+              >
+                {allRevealed ? (
+                  <>
+                    <Trophy className="w-5 h-5" />
+                    See Results
+                  </>
+                ) : justFinishedGroup ? (
+                  <>
+                    <Play className="w-5 h-5" />
+                    Enter Knockouts
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    {visibleMatches === 0 && animatingMatch === null ? "Play Match 1" : "Play Next Match"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Group Table Component ──────────────────────────
+function GroupTable({ table, isGroupDone, qualified }) {
+  return (
+    <div className="mb-4 p-3 rounded-xl bg-surface border border-gray-700">
+      <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Group Standings</h3>
+      <div className="overflow-x-auto -mx-1">
+        <table className="w-full text-xs min-w-[320px]">
+          <thead>
+            <tr className="text-gray-500 uppercase">
+              <th className="text-left pb-1.5 pl-1 w-5">#</th>
+              <th className="text-left pb-1.5">Team</th>
+              <th className="text-center pb-1.5 w-7">P</th>
+              <th className="text-center pb-1.5 w-7">W</th>
+              <th className="text-center pb-1.5 w-7">D</th>
+              <th className="text-center pb-1.5 w-7">L</th>
+              <th className="text-center pb-1.5 w-8">GD</th>
+              <th className="text-center pb-1.5 w-8 font-bold">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {table.map((team, i) => {
+              const gd = team.goalsFor - team.goalsAgainst;
+              const isQualified = i < 2 && isGroupDone;
+              return (
+                <tr
+                  key={team.name}
+                  className={`border-t border-gray-700/50 ${
+                    team.isUser ? "text-emerald-accent font-semibold" : "text-gray-300"
+                  } ${isQualified ? "bg-emerald-accent/5" : i >= 2 && isGroupDone ? "opacity-50" : ""}`}
+                >
+                  <td className="py-1.5 pl-1 text-gray-500">{i + 1}</td>
+                  <td className="py-1.5 truncate max-w-[120px]">{team.isUser ? "Your XI" : team.name}</td>
+                  <td className="text-center py-1.5">{team.played}</td>
+                  <td className="text-center py-1.5">{team.wins}</td>
+                  <td className="text-center py-1.5">{team.draws}</td>
+                  <td className="text-center py-1.5">{team.losses}</td>
+                  <td className="text-center py-1.5">{gd > 0 ? `+${gd}` : gd}</td>
+                  <td className="text-center py-1.5 font-bold">{team.points}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {isGroupDone && (
+        <div className={`mt-2 text-xs ${qualified ? "text-emerald-accent" : "text-red-400"}`}>
+          {qualified ? "✓ Your XI qualified for the knockout rounds!" : "✗ Your XI did not qualify."}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Knockout Bracket Animation ──────────────────────
+function KnockoutBracket({ knockoutMatches, onComplete }) {
+  const [activeRound, setActiveRound] = useState(0);
+  const maxRound = knockoutMatches.length;
+
+  useEffect(() => {
+    if (activeRound < maxRound) {
+      const timer = setTimeout(() => setActiveRound((r) => r + 1), 700);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(onComplete, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [activeRound, maxRound, onComplete]);
+
+  return (
+    <div className="mb-6 p-5 rounded-xl bg-surface border border-gray-700 overflow-hidden">
+      <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-4 text-center">The Road Ahead</h3>
+
+      {/* Bracket path visualization */}
+      <div className="flex items-center justify-center gap-1 sm:gap-2">
+        {KNOCKOUT_ROUNDS.slice(0, maxRound).map((round, i) => {
+          const isReached = i < activeRound;
+          const isCurrent = i === activeRound;
+          const match = knockoutMatches[i];
+          const isLast = i === maxRound - 1;
+
+          return (
+            <div key={round} className="flex items-center gap-1 sm:gap-2">
+              <div className={`flex flex-col items-center transition-all duration-500 ${
+                isReached ? "opacity-100 scale-100" : isCurrent ? "opacity-100 scale-105" : "opacity-30 scale-95"
+              }`}>
+                {/* Round node */}
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-500 ${
+                  isReached
+                    ? "border-emerald-accent bg-emerald-accent/15 text-emerald-accent"
+                    : isCurrent
+                    ? "border-gold bg-gold/10 text-gold animate-pulse"
+                    : "border-gray-600 bg-surface-light text-gray-500"
+                }`}>
+                  <span className="text-lg">{round === "Final" ? "🏆" : "⚽"}</span>
+                  <span className="text-[9px] font-bold uppercase leading-tight text-center px-1">
+                    {round === "Round of 16" ? "R16" : round === "Quarter-Final" ? "QF" : round === "Semi-Final" ? "SF" : "Final"}
+                  </span>
+                </div>
+                {/* Opponent name */}
+                <div className={`text-[10px] mt-1 text-center max-w-16 sm:max-w-20 truncate transition-all duration-500 ${
+                  isReached ? "text-gray-300" : "text-gray-600"
+                }`}>
+                  {match ? `vs ${match.opponent}` : ""}
+                </div>
+              </div>
+
+              {/* Connector line */}
+              {!isLast && (
+                <div className={`w-4 sm:w-8 h-0.5 rounded transition-all duration-700 ${
+                  isReached ? "bg-emerald-accent" : "bg-gray-700"
+                }`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* "Your XI" marker travelling through */}
+      <div className="mt-4 text-center">
+        <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full transition-all duration-500 ${
+          activeRound >= maxRound
+            ? "bg-emerald-accent/20 text-emerald-accent"
+            : "bg-gold/20 text-gold animate-pulse"
+        }`}>
+          {activeRound >= maxRound ? "Let's go!" : "Your XI enters the knockout stage..."}
+        </span>
       </div>
     </div>
   );
@@ -310,26 +434,25 @@ function LiveMatchCard({ match, onComplete, onSkip }) {
   const resultTextColors = { W: "text-emerald-accent", D: "text-gold", L: "text-red-400" };
 
   return (
-    <div className={`p-4 rounded-xl border transition-all duration-500 ${
+    <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-500 ${
       scoreRevealed ? resultColors[match.result] : "border-emerald-accent/30 bg-emerald-accent/5"
     }`}>
       <div className="flex items-center justify-between mb-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-xs text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-            {match.round}
+            <span className="truncate">{match.round}</span>
             {!scoreRevealed && (
-              <span className="inline-flex items-center gap-1 text-emerald-accent">
+              <span className="inline-flex items-center gap-1 text-emerald-accent shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-accent animate-pulse" />
                 LIVE
               </span>
             )}
           </div>
-          <div className="text-white font-medium">
+          <div className="text-white font-medium text-sm sm:text-base truncate">
             Your XI <span className="text-gray-400">vs</span> {match.opponent}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Skip button */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-3">
           {!scoreRevealed && (
             <button
               onClick={(e) => { e.stopPropagation(); onSkip(); }}
@@ -338,11 +461,11 @@ function LiveMatchCard({ match, onComplete, onSkip }) {
               title="Skip animation"
             >
               <FastForward className="w-3 h-3" />
-              Skip
+              <span className="hidden sm:inline">Skip</span>
             </button>
           )}
           <div className="text-right">
-            <div className={`text-2xl font-bold transition-all duration-300 ${
+            <div className={`text-xl sm:text-2xl font-bold transition-all duration-300 ${
               scoreRevealed ? "text-white" : "text-emerald-accent"
             }`}>
               {scoreRevealed ? `${match.teamGoals} - ${match.oppGoals}` : `${runningScore.team} - ${runningScore.opp}`}
@@ -358,7 +481,7 @@ function LiveMatchCard({ match, onComplete, onSkip }) {
 
       <div
         ref={containerRef}
-        className="border-t border-gray-700 pt-3 space-y-1 max-h-64 overflow-y-auto"
+        className="border-t border-gray-700 pt-2 space-y-1 max-h-48 sm:max-h-64 overflow-y-auto"
       >
         {events.slice(0, revealedCount).map((event, i) => (
           <MatchEvent key={i} event={event} animate={i === revealedCount - 1} />
@@ -399,18 +522,18 @@ function MatchCard({ match }) {
 
   return (
     <div
-      className={`p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-300 cursor-pointer`}
+      className={`p-3 sm:p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-300 cursor-pointer`}
       onClick={() => setExpanded(!expanded)}
     >
       <div className="flex items-center justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">{match.round}</div>
-          <div className="text-white font-medium">
+          <div className="text-white font-medium text-sm sm:text-base truncate">
             Your XI <span className="text-gray-400">vs</span> {match.opponent}
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-white">
+        <div className="text-right shrink-0 ml-3">
+          <div className="text-xl sm:text-2xl font-bold text-white">
             {match.teamGoals} - {match.oppGoals}
           </div>
           <div className={`text-xs font-bold ${resultTextColors[match.result]}`}>
