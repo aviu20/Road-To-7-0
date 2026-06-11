@@ -62,19 +62,12 @@ function p(id, name, country, year, pos, rating, atk, mid, def, trivia, opts = {
   // Assign role: if pos was already a specific role use it, otherwise check lookup, otherwise use default
   const role = roleToPosition[pos] ? pos : (playerRoles[id] || defaultRole[pos] || pos);
 
-  const defaultRecords = {
-    FW: { metric: "goals", value: 4, headline: `${name} would be proud — your attack was clinical!` },
-    MID: { metric: "goals", value: 3, headline: `${name}'s spirit lived on in your midfield!` },
-    DEF: { metric: "clean_sheets", value: 2, headline: `${name} kept it tight at the back!` },
-    GK: { metric: "clean_sheets", value: 3, headline: `${name} was a wall between the posts!` },
-  };
   return {
     id, name, country, year, position, role, rating,
     stats: { attack: atk, midfield: mid, defense: def },
     trivia,
     isMarqueeLegend: opts.legend || false,
     superpower: opts.superpower || null,
-    recordThreshold: opts.record || defaultRecords[position],
   };
 }
 

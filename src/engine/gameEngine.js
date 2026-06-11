@@ -18,8 +18,6 @@ export function createInitialState() {
     draftChoices: [],
     tournamentResults: [],
     groupTable: null,
-    currentMatch: 0,
-    matchLog: [],
     eliminated: false,
   };
 }
@@ -346,109 +344,303 @@ function simulateMatch(team, opponent, round, squad) {
   };
 }
 
+// ─── Match event templates ──────────────────────────────────
 const goalTemplates = {
   FW: [
-    (name, min) => `${min}' ⚽ GOAL! ${name} finishes clinically from inside the box!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} volleys it into the bottom corner!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} cuts inside and curls one past the keeper!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} gets on the end of a through ball and slots home!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} beats the offside trap and chips the keeper!`,
-    (name, min) => `${min}' ⚽ GOAL! A moment of brilliance — ${name} dribbles past two and fires home!`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} finishes clinically from inside the box!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} volleys it into the bottom corner!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} cuts inside and curls one past the keeper!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} gets on the end of a through ball and slots home!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} beats the offside trap and chips the keeper!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! A moment of brilliance — ${s} dribbles past two and fires home!${a}`,
   ],
   MID: [
-    (name, min) => `${min}' ⚽ GOAL! ${name} unleashes a thunderbolt from 25 yards!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} arrives late in the box and smashes it in!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} picks up a loose ball and drives it low into the corner!`,
-    (name, min) => `${min}' ⚽ GOAL! A surging run from ${name} ends with a powerful strike!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} threads a one-two and finishes with composure!`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} unleashes a thunderbolt from 25 yards!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} arrives late in the box and smashes it in!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} picks up a loose ball and drives it low into the corner!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! A surging run from ${s} ends with a powerful strike!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} threads a one-two and finishes with composure!${a}`,
   ],
   DEF: [
-    (name, min) => `${min}' ⚽ GOAL! ${name} rises highest and heads home from a corner!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} bombs forward and lashes it into the net!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} scores with a towering header from a free kick!`,
-    (name, min) => `${min}' ⚽ GOAL! An overlapping run from ${name} — and a clinical finish!`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} rises highest and heads home from a corner!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} bombs forward and lashes it into the net!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} scores with a towering header from a free kick!${a}`,
+    (s, a, m) => `${m}' ⚽ GOAL! An overlapping run from ${s} — and a clinical finish!${a}`,
   ],
   GK: [
-    (name, min) => `${min}' ⚽ GOAL! Unbelievable — ${name} scores from a goal kick caught in the wind!`,
-    (name, min) => `${min}' ⚽ GOAL! ${name} charges up for the corner and heads it in!`,
+    (s, a, m) => `${m}' ⚽ GOAL! Unbelievable — ${s} scores from a goal kick caught in the wind!`,
+    (s, a, m) => `${m}' ⚽ GOAL! ${s} charges up for the corner and heads it in!`,
   ],
 };
 
-const oppGoalTemplates = [
-  (min) => `${min}' ⚽ Opponent scores from a quick counterattack...`,
-  (min) => `${min}' ⚽ A defensive lapse — opponent capitalizes and scores...`,
-  (min) => `${min}' ⚽ Opponent finds space on the edge of the box and finishes...`,
-  (min) => `${min}' ⚽ A scrappy goal from a set piece — opponent heads it in...`,
-  (min) => `${min}' ⚽ Opponent threads a pass through the defense and converts...`,
-  (min) => `${min}' ⚽ A deflection falls kindly for the opponent — they make no mistake...`,
+const freekickGoalTemplates = [
+  (s, m) => `${m}' ⚽ GOAL! ${s} curls a free kick into the top corner — unstoppable!`,
+  (s, m) => `${m}' ⚽ GOAL! ${s} whips the free kick over the wall and in!`,
+  (s, m) => `${m}' ⚽ GOAL! ${s} bends a beautiful free kick past the keeper!`,
 ];
 
-const drawColorTemplates = [
-  (min) => `${min}' A crunching tackle in midfield sets the tone.`,
-  (min) => `${min}' The woodwork rattles — so close!`,
-  (min) => `${min}' A brilliant save denies what looked like a certain goal.`,
-  (min) => `${min}' Tempers flare after a late challenge — the ref reaches for yellow.`,
-  (min) => `${min}' A sweeping move down the wing comes to nothing.`,
+const penaltyTemplates = [
+  (s, m) => `${m}' ⚽ GOAL! ${s} sends the keeper the wrong way from the penalty spot!`,
+  (s, m) => `${m}' ⚽ GOAL! ${s} steps up and hammers the penalty into the roof of the net!`,
+  (s, m) => `${m}' ⚽ GOAL! Cool as you like — ${s} rolls the penalty into the corner!`,
 ];
+
+const oppGoalTemplates = [
+  (m) => `${m}' ⚽ Opponent scores from a quick counterattack...`,
+  (m) => `${m}' ⚽ A defensive lapse — opponent capitalizes and scores...`,
+  (m) => `${m}' ⚽ Opponent finds space on the edge of the box and finishes...`,
+  (m) => `${m}' ⚽ A scrappy goal from a set piece — opponent heads it in...`,
+  (m) => `${m}' ⚽ Opponent threads a pass through the defense and converts...`,
+  (m) => `${m}' ⚽ A deflection falls kindly for the opponent — they make no mistake...`,
+];
+
+const saveTemplates = [
+  (gk, m) => `${m}' 🧤 Great save! ${gk} dives full stretch to tip it around the post!`,
+  (gk, m) => `${m}' 🧤 ${gk} comes up big — a reflex stop denies a certain goal!`,
+  (gk, m) => `${m}' 🧤 Incredible save by ${gk}! Fingertips push the shot onto the bar!`,
+  (gk, m) => `${m}' 🧤 ${gk} reads it perfectly and smothers the shot at the near post!`,
+];
+
+const yellowCardTemplates = [
+  (p, m) => `${m}' 🟨 ${p} goes into the book for a rash challenge.`,
+  (p, m) => `${m}' 🟨 Yellow card — ${p} clips the attacker's heels.`,
+  (p, m) => `${m}' 🟨 ${p} is cautioned for a cynical foul to stop the counter.`,
+  (p, m) => `${m}' 🟨 The ref shows yellow to ${p} for persistent fouling.`,
+];
+
+const oppYellowTemplates = [
+  (m) => `${m}' 🟨 Opponent player picks up a yellow for a late tackle.`,
+  (m) => `${m}' 🟨 Booking for the opposition — a frustrated challenge.`,
+];
+
+const redCardTemplates = [
+  (p, m) => `${m}' 🟥 RED CARD! ${p} is sent off for a dangerous tackle! Down to 10 men!`,
+  (p, m) => `${m}' 🟥 ${p} sees red after a second yellow — you'll have to dig deep!`,
+];
+
+const oppRedTemplates = [
+  (m) => `${m}' 🟥 RED CARD! Opponent reduced to 10 men after a reckless challenge!`,
+];
+
+const colorTemplates = [
+  (m) => `${m}' A crunching tackle in midfield sets the tone.`,
+  (m) => `${m}' The woodwork rattles — so close!`,
+  (m) => `${m}' A sweeping move down the wing comes to nothing.`,
+  (m) => `${m}' A long-range effort sails just over the bar.`,
+  (m) => `${m}' The keeper punches clear from a dangerous corner.`,
+  (m) => `${m}' A promising attack breaks down in the final third.`,
+  (m) => `${m}' VAR check... no penalty. Play continues.`,
+  (m) => `${m}' The crowd roars as a shot flies just wide of the post.`,
+];
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function generateMatchEvents(teamGoals, oppGoals, squad) {
   const events = [];
   const totalGoals = teamGoals + oppGoals;
+  const gk = squad?.find((p) => p.position === "GK");
 
-  if (totalGoals === 0) {
-    const color1 = drawColorTemplates[Math.floor(Math.random() * drawColorTemplates.length)];
-    const color2 = drawColorTemplates[Math.floor(Math.random() * drawColorTemplates.length)];
-    events.push({ minute: 34, type: "info", team: "neutral", text: color1(34) });
-    events.push({ minute: 67, type: "info", team: "neutral", text: color2(67) });
-    events.push({ minute: 90, type: "info", team: "neutral", text: "90' Full time — a hard-fought 0-0 draw." });
-    return events;
-  }
-
+  // ── Build scorer pool weighted by position ──
   const scorerPool = squad
-    ? [...squad].sort((a, b) => {
-        const posWeight = { FW: 4, MID: 2, DEF: 1, GK: 0 };
-        return (posWeight[b.position] || 0) + b.stats.attack - (posWeight[a.position] || 0) - a.stats.attack;
+    ? [...squad].filter((p) => p.position !== "GK").sort((a, b) => {
+        const w = { FW: 4, MID: 2, DEF: 1 };
+        return (w[b.position] || 0) + b.stats.attack - (w[a.position] || 0) - a.stats.attack;
       })
     : [];
 
-  const minutes = [];
+  // ── Build assist pool (midfielders and creative players first) ──
+  const assistPool = squad
+    ? [...squad].filter((p) => p.position !== "GK").sort((a, b) => {
+        const w = { MID: 4, FW: 2, DEF: 1 };
+        return (w[b.position] || 0) + b.stats.midfield - (w[a.position] || 0) - a.stats.midfield;
+      })
+    : [];
+
+  // ── Card candidates (defenders and midfielders more likely) ──
+  const cardPool = squad
+    ? [...squad].filter((p) => p.position !== "GK").sort((a, b) => {
+        const w = { DEF: 4, MID: 3, FW: 1 };
+        return (w[b.position] || 0) - (w[a.position] || 0);
+      })
+    : [];
+
+  // ── Generate goal minutes ──
+  const goalMinutes = [];
   for (let i = 0; i < totalGoals; i++) {
-    minutes.push(Math.floor(Math.random() * 88) + 2);
+    goalMinutes.push(Math.floor(Math.random() * 88) + 2);
   }
-  minutes.sort((a, b) => a - b);
+  goalMinutes.sort((a, b) => a - b);
 
+  // ── Decide special goal types ──
+  // ~15% chance each team goal is a free kick, ~10% penalty
+  const specialTypes = goalMinutes.map(() => {
+    const r = Math.random();
+    if (r < 0.12) return "freekick";
+    if (r < 0.20) return "penalty";
+    return "normal";
+  });
+
+  // ── Generate non-goal events ──
+  // Yellow cards: 1-3 per match total
+  const numYellows = 1 + Math.floor(Math.random() * 3);
+  // Red card: ~6% chance per match
+  const hasRedCard = Math.random() < 0.06;
+  const hasOppRedCard = Math.random() < 0.08;
+  // GK saves: 1-3 per match (more if opponent scores more)
+  const numSaves = gk ? Math.max(1, Math.floor(Math.random() * 3) + (oppGoals > 0 ? 1 : 0)) : 0;
+  // Color events: 2-4 per match
+  const numColor = 2 + Math.floor(Math.random() * 3);
+
+  // ── Place all events on a timeline ──
+  const timeline = [];
+
+  // Goals
   let tg = 0, og = 0;
-  let scorerIndex = 0;
-  const usedTemplates = new Set();
+  let scorerIdx = 0;
+  const usedScorers = new Set();
 
-  for (let i = 0; i < minutes.length; i++) {
+  for (let i = 0; i < goalMinutes.length; i++) {
+    const min = goalMinutes[i];
     if (tg < teamGoals && (og >= oppGoals || Math.random() < teamGoals / totalGoals)) {
       tg++;
       const scorer = scorerPool.length > 0
-        ? scorerPool[scorerIndex % scorerPool.length]
+        ? scorerPool[scorerIdx % scorerPool.length]
         : null;
-      scorerIndex++;
+      scorerIdx++;
+
+      // Pick an assister (different from scorer)
+      let assister = null;
+      if (scorer && assistPool.length > 1 && specialTypes[i] === "normal") {
+        const candidates = assistPool.filter((p) => p.id !== scorer.id);
+        assister = candidates.length > 0 ? pickRandom(candidates) : null;
+      }
+      const assistText = assister ? ` (assist: ${assister.name})` : "";
 
       let text;
-      if (scorer) {
+      if (specialTypes[i] === "freekick" && scorer) {
+        text = pickRandom(freekickGoalTemplates)(scorer.name, min);
+      } else if (specialTypes[i] === "penalty" && scorer) {
+        text = pickRandom(penaltyTemplates)(scorer.name, min);
+      } else if (scorer) {
         const templates = goalTemplates[scorer.position] || goalTemplates.MID;
-        let idx;
-        do { idx = Math.floor(Math.random() * templates.length); }
-        while (usedTemplates.has(`${scorer.position}-${idx}`) && usedTemplates.size < templates.length * 4);
-        usedTemplates.add(`${scorer.position}-${idx}`);
-        text = templates[idx](scorer.name, minutes[i]);
+        text = pickRandom(templates)(scorer.name, assistText, min);
       } else {
-        text = `${minutes[i]}' ⚽ GOAL! Your team scores!`;
+        text = `${min}' ⚽ GOAL! Your team scores!`;
       }
-      events.push({ minute: minutes[i], type: "goal", team: "player", text });
+
+      timeline.push({
+        minute: min, type: specialTypes[i] === "penalty" ? "penalty" : specialTypes[i] === "freekick" ? "freekick" : "goal",
+        team: "player", text,
+        scorer: scorer ? { name: scorer.name, id: scorer.id } : null,
+        assist: assister ? { name: assister.name, id: assister.id } : null,
+      });
+      if (scorer) usedScorers.add(scorer.id);
     } else {
       og++;
-      const template = oppGoalTemplates[Math.floor(Math.random() * oppGoalTemplates.length)];
-      events.push({ minute: minutes[i], type: "goal", team: "opponent", text: template(minutes[i]) });
+      timeline.push({
+        minute: min, type: "goal", team: "opponent",
+        text: pickRandom(oppGoalTemplates)(min),
+      });
     }
   }
 
-  return events;
+  // Saves
+  for (let i = 0; i < numSaves; i++) {
+    const min = Math.floor(Math.random() * 88) + 2;
+    timeline.push({
+      minute: min, type: "save", team: "player",
+      text: pickRandom(saveTemplates)(gk.name, min),
+      player: { name: gk.name, id: gk.id },
+    });
+  }
+
+  // Yellow cards — split between teams
+  const usedCardPlayers = new Set();
+  for (let i = 0; i < numYellows; i++) {
+    const min = Math.floor(Math.random() * 85) + 5;
+    if (Math.random() < 0.5 && cardPool.length > 0) {
+      // Our player gets a yellow
+      const candidates = cardPool.filter((p) => !usedCardPlayers.has(p.id));
+      const player = candidates.length > 0 ? pickRandom(candidates) : pickRandom(cardPool);
+      usedCardPlayers.add(player.id);
+      timeline.push({
+        minute: min, type: "yellow", team: "player",
+        text: pickRandom(yellowCardTemplates)(player.name, min),
+        player: { name: player.name, id: player.id },
+      });
+    } else {
+      timeline.push({
+        minute: min, type: "yellow", team: "opponent",
+        text: pickRandom(oppYellowTemplates)(min),
+      });
+    }
+  }
+
+  // Red cards (rare)
+  if (hasRedCard && cardPool.length > 0) {
+    const min = 30 + Math.floor(Math.random() * 55);
+    const player = pickRandom(cardPool.filter((p) => !usedScorers.has(p.id)) || cardPool);
+    timeline.push({
+      minute: min, type: "red", team: "player",
+      text: pickRandom(redCardTemplates)(player.name, min),
+      player: { name: player.name, id: player.id },
+    });
+  }
+  if (hasOppRedCard) {
+    const min = 25 + Math.floor(Math.random() * 60);
+    timeline.push({
+      minute: min, type: "red", team: "opponent",
+      text: pickRandom(oppRedTemplates)(min),
+    });
+  }
+
+  // Color / atmosphere events
+  const usedColorIdx = new Set();
+  for (let i = 0; i < numColor; i++) {
+    const min = Math.floor(Math.random() * 88) + 2;
+    let idx;
+    do { idx = Math.floor(Math.random() * colorTemplates.length); }
+    while (usedColorIdx.has(idx) && usedColorIdx.size < colorTemplates.length);
+    usedColorIdx.add(idx);
+    timeline.push({
+      minute: min, type: "info", team: "neutral",
+      text: colorTemplates[idx](min),
+    });
+  }
+
+  // Half-time
+  const htScore = { team: 0, opp: 0 };
+  for (const e of timeline) {
+    if (e.minute <= 45 && (e.type === "goal" || e.type === "freekick" || e.type === "penalty")) {
+      if (e.team === "player") htScore.team++;
+      else if (e.team === "opponent") htScore.opp++;
+    }
+  }
+  timeline.push({
+    minute: 45, type: "halftime", team: "neutral",
+    text: `45' ── HT: Your XI ${htScore.team} - ${htScore.opp} ──`,
+  });
+
+  // Full time
+  const ftText = totalGoals === 0
+    ? "90' Full time — a hard-fought 0-0 draw."
+    : teamGoals > oppGoals
+      ? `90' Full time! A commanding ${teamGoals}-${oppGoals} victory.`
+      : teamGoals === oppGoals
+        ? `90' Full time — honors even at ${teamGoals}-${oppGoals}.`
+        : `90' Full time. A tough ${teamGoals}-${oppGoals} defeat.`;
+  timeline.push({ minute: 91, type: "fulltime", team: "neutral", text: ftText });
+
+  // Sort by minute, with halftime/fulltime as boundaries
+  timeline.sort((a, b) => {
+    if (a.minute !== b.minute) return a.minute - b.minute;
+    const priority = { halftime: 10, fulltime: 10, goal: 5, freekick: 5, penalty: 5 };
+    return (priority[b.type] || 0) - (priority[a.type] || 0);
+  });
+
+  return timeline;
 }
 
 function applySuperPowers(squad, baseStats) {
@@ -469,20 +661,60 @@ function applySuperPowers(squad, baseStats) {
   };
 }
 
-export function checkRecordBreakers(squad, results) {
-  const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
-  const cleanSheets = results.filter((r) => r.cleanSheet).length;
+/**
+ * Compute per-player tournament stats from match events.
+ * Returns { scorers: [...], assisters: [...], cards: [...], saves: [...] }
+ * Each entry: { id, name, count }
+ */
+export function computeTournamentStats(results) {
+  const goals = {};
+  const assists = {};
+  const yellows = {};
+  const reds = {};
+  const saves = {};
 
-  const records = [];
-  for (const player of squad) {
-    const { metric, value, headline } = player.recordThreshold;
-    let achieved = false;
-    if (metric === "goals" && totalGoals >= value) achieved = true;
-    if (metric === "clean_sheets" && cleanSheets >= value) achieved = true;
-    if (achieved) records.push({ player, headline });
+  for (const match of results) {
+    if (!match.events) continue;
+    for (const ev of match.events) {
+      if (ev.team !== "player") continue;
+
+      if ((ev.type === "goal" || ev.type === "freekick" || ev.type === "penalty") && ev.scorer) {
+        const k = ev.scorer.id;
+        if (!goals[k]) goals[k] = { ...ev.scorer, count: 0 };
+        goals[k].count++;
+      }
+      if (ev.assist) {
+        const k = ev.assist.id;
+        if (!assists[k]) assists[k] = { ...ev.assist, count: 0 };
+        assists[k].count++;
+      }
+      if (ev.type === "yellow" && ev.player) {
+        const k = ev.player.id;
+        if (!yellows[k]) yellows[k] = { ...ev.player, count: 0 };
+        yellows[k].count++;
+      }
+      if (ev.type === "red" && ev.player) {
+        const k = ev.player.id;
+        if (!reds[k]) reds[k] = { ...ev.player, count: 0 };
+        reds[k].count++;
+      }
+      if (ev.type === "save" && ev.player) {
+        const k = ev.player.id;
+        if (!saves[k]) saves[k] = { ...ev.player, count: 0 };
+        saves[k].count++;
+      }
+    }
   }
 
-  return records;
+  const sortDesc = (obj) => Object.values(obj).sort((a, b) => b.count - a.count);
+
+  return {
+    scorers: sortDesc(goals),
+    assisters: sortDesc(assists),
+    yellowCards: sortDesc(yellows),
+    redCards: sortDesc(reds),
+    saves: sortDesc(saves),
+  };
 }
 
 function shuffleArray(arr) {

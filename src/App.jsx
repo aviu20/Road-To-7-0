@@ -79,8 +79,8 @@ export default function App() {
   const handleTournamentComplete = useCallback(() => {
     setState((s) => {
       const won = !s.eliminated && s.tournamentResults.length === 7;
-      addRunToCollection(s.squad, won);
-      return { ...s, phase: PHASES.GAME_OVER };
+      const collectionResult = addRunToCollection(s.squad, won);
+      return { ...s, phase: PHASES.GAME_OVER, newPlayers: collectionResult.newPlayers };
     });
     refreshCollection();
   }, [refreshCollection]);
@@ -120,6 +120,7 @@ export default function App() {
           finalRound={state.finalRound}
           onRestart={handleRestart}
           collectionStats={collectionStats}
+          newPlayers={state.newPlayers || []}
         />
       )}
     </div>
