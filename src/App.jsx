@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { playingStyles, legends } from "./data/legends";
 import {
   PHASES,
@@ -91,6 +92,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0f1a]">
+      <Analytics />
       {state.phase === PHASES.SETUP && (
         <SetupPhase onSelectStyle={handleSelectStyle} collectionStats={collectionStats} />
       )}
