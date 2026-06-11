@@ -1,5 +1,5 @@
 import { Star } from "lucide-react";
-import { positionLabels, roleLabels, countryFlags } from "../data/legends";
+import { roleLabels, countryFlags } from "../data/legends";
 
 function Flag({ country, size = "w-5" }) {
   const code = countryFlags[country];

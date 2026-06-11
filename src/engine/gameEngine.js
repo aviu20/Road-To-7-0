@@ -18,8 +18,6 @@ export function createInitialState() {
     draftChoices: [],
     tournamentResults: [],
     groupTable: null,
-    currentMatch: 0,
-    matchLog: [],
     eliminated: false,
   };
 }
@@ -661,22 +659,6 @@ function applySuperPowers(squad, baseStats) {
     midfield: Math.min(99, baseStats.midfield + bonusMid),
     defense: Math.min(99, baseStats.defense + bonusDef),
   };
-}
-
-export function checkRecordBreakers(squad, results) {
-  const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
-  const cleanSheets = results.filter((r) => r.cleanSheet).length;
-
-  const records = [];
-  for (const player of squad) {
-    const { metric, value, headline } = player.recordThreshold;
-    let achieved = false;
-    if (metric === "goals" && totalGoals >= value) achieved = true;
-    if (metric === "clean_sheets" && cleanSheets >= value) achieved = true;
-    if (achieved) records.push({ player, headline });
-  }
-
-  return records;
 }
 
 /**

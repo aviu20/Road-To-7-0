@@ -1,9 +1,30 @@
-import { useState, useEffect, useRef } from "react";
-import { Trophy, Play } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Trophy, Play, FastForward } from "lucide-react";
+
+// ─── Pre-match narratives based on round ──────────────────
+const preMatchLines = {
+  "Group — Match 1": "The tournament begins. Time to set the tone.",
+  "Group — Match 2": "One down — can your XI build momentum?",
+  "Group — Match 3": "The final group game. Everything on the line.",
+  "Round of 16": "Knockout football. No second chances now.",
+  "Quarter-Final": "The last eight. Every tackle matters.",
+  "Semi-Final": "One game from the Final. History beckons.",
+  "Final": "This is it. The World Cup Final.",
+};
+
+function getPostMatchLine(match) {
+  const { result, teamGoals, oppGoals, opponent } = match;
+  if (result === "W" && teamGoals >= 3) return `A dominant display against ${opponent}. The squad is firing.`;
+  if (result === "W" && oppGoals === 0) return `Clean sheet! ${opponent} had no answer.`;
+  if (result === "W") return `A hard-fought win over ${opponent}. Three points secured.`;
+  if (result === "D") return `A tense draw with ${opponent}. Points shared.`;
+  if (result === "L" && oppGoals - teamGoals >= 3) return `Outclassed by ${opponent}. A humbling defeat.`;
+  if (result === "L") return `${opponent} edged it. A bitter loss.`;
+  return "";
+}
 
 export default function TournamentPhase({ results, groupTable, onComplete }) {
   const [visibleMatches, setVisibleMatches] = useState(0);
-  // Track which match is currently animating (null = none)
   const [animatingMatch, setAnimatingMatch] = useState(null);
 
   const groupMatches = results.filter((r) => r.round.startsWith("Group"));
@@ -16,18 +37,45 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
     if (allRevealed) {
       onComplete();
     } else if (animatingMatch === null) {
-      // Start animating the next match
       setAnimatingMatch(visibleMatches);
     }
   };
 
-  const handleAnimationComplete = () => {
+  const handleAnimationComplete = useCallback(() => {
     setVisibleMatches((v) => v + 1);
     setAnimatingMatch(null);
-  };
+  }, []);
 
-  // Determine which match index is currently being animated
+  const handleSkip = useCallback(() => {
+    // Skip current animation — immediately complete the match
+    setVisibleMatches((v) => v + 1);
+    setAnimatingMatch(null);
+  }, []);
+
   const currentAnimIdx = animatingMatch;
+
+  // Progressive group table: only show stats for matches already revealed
+  const progressiveTable = groupTable ? groupTable.map((team) => {
+    if (!team.isUser) return team;
+    // Recalculate user stats based on visible matches only
+    const visible = groupMatches.slice(0, visibleMatches);
+    const w = visible.filter((m) => m.result === "W").length;
+    const d = visible.filter((m) => m.result === "D").length;
+    const l = visible.filter((m) => m.result === "L").length;
+    const gf = visible.reduce((s, m) => s + m.teamGoals, 0);
+    const ga = visible.reduce((s, m) => s + m.oppGoals, 0);
+    return {
+      ...team,
+      played: visibleMatches,
+      wins: w, draws: d, losses: l,
+      goalsFor: gf, goalsAgainst: ga,
+      points: w * 3 + d,
+    };
+  }) : null;
+
+  // Get the next match to be played (for pre-match narrative)
+  const nextMatchIdx = animatingMatch !== null ? animatingMatch : visibleMatches;
+  const nextMatch = results[nextMatchIdx];
 
   return (
     <div className="min-h-screen px-4 py-8">
@@ -38,8 +86,8 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
           <p className="text-gray-400">Your legends take the field...</p>
         </div>
 
-        {/* Group Table */}
-        {groupTable && visibleMatches > 0 && (
+        {/* Group Table — progressive stats */}
+        {progressiveTable && visibleMatches > 0 && (
           <div className="mb-6 p-4 rounded-xl bg-surface border border-gray-700">
             <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Group Standings</h3>
             <table className="w-full text-sm">
@@ -56,7 +104,7 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
                 </tr>
               </thead>
               <tbody>
-                {groupTable.map((team, i) => {
+                {progressiveTable.map((team, i) => {
                   const gd = team.goalsFor - team.goalsAgainst;
                   const qualified = i < 2 && isGroupDone;
                   return (
@@ -68,7 +116,7 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
                     >
                       <td className="py-2 pr-2 text-gray-500">{i + 1}</td>
                       <td className="py-2">{team.isUser ? "Your XI" : team.name}</td>
-                      <td className="text-center py-2">{Math.min(team.played, visibleMatches > 0 ? 3 : 0)}</td>
+                      <td className="text-center py-2">{team.played}</td>
                       <td className="text-center py-2">{team.wins}</td>
                       <td className="text-center py-2">{team.draws}</td>
                       <td className="text-center py-2">{team.losses}</td>
@@ -95,12 +143,12 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
               {groupMatches.slice(0, visibleMatches).map((match, i) => (
                 <MatchCard key={`g${i}`} match={match} />
               ))}
-              {/* Currently animating match (group stage) */}
               {currentAnimIdx !== null && currentAnimIdx < groupMatches.length && (
                 <LiveMatchCard
                   key={`g-live-${currentAnimIdx}`}
                   match={groupMatches[currentAnimIdx]}
                   onComplete={handleAnimationComplete}
+                  onSkip={handleSkip}
                 />
               )}
             </div>
@@ -115,20 +163,39 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
               {knockoutMatches.slice(0, knockoutVisible).map((match, i) => (
                 <MatchCard key={`k${i}`} match={match} />
               ))}
-              {/* Currently animating match (knockout) */}
               {currentAnimIdx !== null && currentAnimIdx >= groupMatches.length && (
                 <LiveMatchCard
                   key={`k-live-${currentAnimIdx}`}
                   match={knockoutMatches[currentAnimIdx - groupMatches.length]}
                   onComplete={handleAnimationComplete}
+                  onSkip={handleSkip}
                 />
               )}
             </div>
           </div>
         )}
 
+        {/* Post-match story beat */}
+        {visibleMatches > 0 && animatingMatch === null && !allRevealed && (
+          <div className="text-center my-4 animate-fade-in">
+            <p className="text-sm text-gray-400 italic">
+              {getPostMatchLine(results[visibleMatches - 1])}
+            </p>
+          </div>
+        )}
+
+        {/* Pre-match narrative */}
+        {!allRevealed && animatingMatch === null && nextMatch && (
+          <div className="text-center mt-2 mb-4">
+            <p className="text-xs text-gray-500">
+              Next: <span className="text-white font-medium">Your XI vs {nextMatch.opponent}</span>
+              {" · "}{preMatchLines[nextMatch.round] || ""}
+            </p>
+          </div>
+        )}
+
         {/* Play Match / Continue Button */}
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-6">
           <button
             onClick={handlePlayMatch}
             disabled={animatingMatch !== null}
@@ -173,7 +240,6 @@ function MatchEvent({ event, animate = false }) {
   const style = eventStyles[event.type] || eventStyles.info;
   const isBreak = event.type === "halftime" || event.type === "fulltime";
   const isNeutral = event.team === "neutral";
-
   const animClass = animate ? "animate-fade-in" : "";
 
   if (isBreak) {
@@ -188,9 +254,7 @@ function MatchEvent({ event, animate = false }) {
 
   const colorClass = isNeutral
     ? "text-gray-500 italic"
-    : event.team === "player"
-      ? style.playerColor
-      : style.oppColor;
+    : event.team === "player" ? style.playerColor : style.oppColor;
 
   return (
     <div className={`text-xs ${colorClass} flex items-start gap-1.5 py-0.5 ${animClass}`}>
@@ -200,8 +264,8 @@ function MatchEvent({ event, animate = false }) {
   );
 }
 
-// ─── Live match card: reveals events one-by-one, then shows final score ──
-function LiveMatchCard({ match, onComplete }) {
+// ─── Live match card with skip button ──
+function LiveMatchCard({ match, onComplete, onSkip }) {
   const [revealedCount, setRevealedCount] = useState(0);
   const [scoreRevealed, setScoreRevealed] = useState(false);
   const containerRef = useRef(null);
@@ -211,29 +275,23 @@ function LiveMatchCard({ match, onComplete }) {
   useEffect(() => {
     if (revealedCount < events.length) {
       const delay = getEventDelay(events[revealedCount]);
-      const timer = setTimeout(() => {
-        setRevealedCount((c) => c + 1);
-      }, delay);
+      const timer = setTimeout(() => setRevealedCount((c) => c + 1), delay);
       return () => clearTimeout(timer);
     } else if (!scoreRevealed) {
-      // All events shown, reveal score after a beat
       const timer = setTimeout(() => setScoreRevealed(true), 600);
       return () => clearTimeout(timer);
     } else {
-      // Score revealed, auto-complete after a moment
-      const timer = setTimeout(onComplete, 1200);
+      const timer = setTimeout(onComplete, 1000);
       return () => clearTimeout(timer);
     }
   }, [revealedCount, scoreRevealed, events.length, onComplete]);
 
-  // Auto-scroll to bottom as events appear
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [revealedCount]);
 
-  // Running score based on revealed events
   const runningScore = { team: 0, opp: 0 };
   for (let i = 0; i < revealedCount; i++) {
     const ev = events[i];
@@ -255,7 +313,6 @@ function LiveMatchCard({ match, onComplete }) {
     <div className={`p-4 rounded-xl border transition-all duration-500 ${
       scoreRevealed ? resultColors[match.result] : "border-emerald-accent/30 bg-emerald-accent/5"
     }`}>
-      {/* Header with live score or final score */}
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-xs text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-2">
@@ -271,21 +328,34 @@ function LiveMatchCard({ match, onComplete }) {
             Your XI <span className="text-gray-400">vs</span> {match.opponent}
           </div>
         </div>
-        <div className="text-right">
-          <div className={`text-2xl font-bold transition-all duration-300 ${
-            scoreRevealed ? "text-white" : "text-emerald-accent"
-          }`}>
-            {scoreRevealed ? `${match.teamGoals} - ${match.oppGoals}` : `${runningScore.team} - ${runningScore.opp}`}
-          </div>
-          {scoreRevealed && (
-            <div className={`text-xs font-bold ${resultTextColors[match.result]} animate-fade-in`}>
-              {resultLabels[match.result]}
-            </div>
+        <div className="flex items-center gap-3">
+          {/* Skip button */}
+          {!scoreRevealed && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSkip(); }}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-500 hover:text-gray-300
+                         hover:bg-gray-700/50 transition-colors cursor-pointer"
+              title="Skip animation"
+            >
+              <FastForward className="w-3 h-3" />
+              Skip
+            </button>
           )}
+          <div className="text-right">
+            <div className={`text-2xl font-bold transition-all duration-300 ${
+              scoreRevealed ? "text-white" : "text-emerald-accent"
+            }`}>
+              {scoreRevealed ? `${match.teamGoals} - ${match.oppGoals}` : `${runningScore.team} - ${runningScore.opp}`}
+            </div>
+            {scoreRevealed && (
+              <div className={`text-xs font-bold ${resultTextColors[match.result]} animate-fade-in`}>
+                {resultLabels[match.result]}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Events feed */}
       <div
         ref={containerRef}
         className="border-t border-gray-700 pt-3 space-y-1 max-h-64 overflow-y-auto"
@@ -308,17 +378,15 @@ function LiveMatchCard({ match, onComplete }) {
 }
 
 function getEventDelay(event) {
-  // Goals/penalties/freekicks get a longer pause for drama
   if (event.type === "goal" || event.type === "freekick" || event.type === "penalty") return 800;
   if (event.type === "red") return 700;
   if (event.type === "save") return 600;
   if (event.type === "yellow") return 500;
   if (event.type === "halftime" || event.type === "fulltime") return 600;
-  // Info/color events are faster
   return 400;
 }
 
-// ─── Static match card (already completed, expandable) ──
+// ─── Static match card (expandable) ──
 function MatchCard({ match }) {
   const [expanded, setExpanded] = useState(false);
   const resultColors = {

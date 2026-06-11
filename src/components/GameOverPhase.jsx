@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Trophy, Star, RotateCcw, BookOpen, Share2, Check } from "lucide-react";
+import { Trophy, Star, RotateCcw, BookOpen, Share2, Check, Sparkles } from "lucide-react";
 import { computeTournamentStats } from "../engine/gameEngine";
+import { legends } from "../data/legends";
 import PlayerCard from "./PlayerCard";
 
 // ── Real World Cup tournament records to compare against ──
@@ -62,33 +63,51 @@ const TOURNAMENT_RECORDS = [
   },
 ];
 
-function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats) {
-  const legends = squad.filter((p) => p.isMarqueeLegend);
-  const topNames = legends.slice(0, 3).map((p) => p.name);
-  const nameStr = topNames.length > 0 ? topNames.join(", ") : squad.slice(0, 3).map((p) => p.name).join(", ");
+// ── Share text: build around the most interesting thing that happened ──
+function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats, recordComparisons) {
+  const lines = [`⚽ Road to 7-0 — World Cup Draft`, ``];
 
-  const resultLine = wonTournament
-    ? `I went ${wins}-0 and won the World Cup!`
-    : `Eliminated in the ${results[results.length - 1].round}`;
+  // Lead with the headline
+  if (wonTournament) {
+    lines.push(`🏆 I went ${wins}-0 and won the World Cup!`);
+  } else {
+    lines.push(`Eliminated in the ${results[results.length - 1].round}`);
+  }
 
+  // Find the most interesting thing: broken record > close record > big win > top scorer
+  const brokenRecord = recordComparisons.find((r) => r.broken);
+  const closeRecord = recordComparisons.find((r) => r.pct >= 75 && !r.broken);
+  const bigWin = results.find((r) => r.teamGoals >= 5);
   const topScorer = tourneyStats?.scorers?.[0];
-  const scorerLine = topScorer ? `⭐ ${topScorer.name}: ${topScorer.count} goals` : "";
 
-  const lines = [
-    `⚽ Road to 7-0 — World Cup Draft`,
-    ``,
-    resultLine,
-    `${totalGoals} goals in ${results.length} matches`,
-    ...(scorerLine ? [scorerLine] : []),
-    ``,
-    `My squad: ${nameStr}${legends.length > 3 ? ` +${legends.length - 3} more legends` : ""}`,
-    ``,
-    `Draft your dream XI → road-to-7-0.vercel.app`,
-  ];
+  if (brokenRecord) {
+    const name = brokenRecord.yourPlayer ? brokenRecord.yourPlayer.name : "My XI";
+    lines.push(`🔥 ${name} broke ${brokenRecord.record.holder}'s ${brokenRecord.label} record!`);
+  } else if (closeRecord) {
+    const name = closeRecord.yourPlayer ? closeRecord.yourPlayer.name : "My XI";
+    lines.push(`📊 ${name} hit ${closeRecord.pct}% of ${closeRecord.record.holder}'s ${closeRecord.label} record`);
+  } else if (bigWin) {
+    lines.push(`💥 ${bigWin.teamGoals}-${bigWin.oppGoals} demolition vs ${bigWin.opponent}`);
+  } else if (topScorer) {
+    lines.push(`⭐ ${topScorer.name}: ${topScorer.count} goals in ${results.length} matches`);
+  }
+
+  lines.push(``);
+
+  // Squad highlight
+  const legendsInSquad = squad.filter((p) => p.isMarqueeLegend);
+  const topNames = legendsInSquad.length > 0
+    ? legendsInSquad.slice(0, 3).map((p) => p.name)
+    : squad.slice(0, 3).map((p) => p.name);
+  lines.push(`My squad: ${topNames.join(", ")}${legendsInSquad.length > 3 ? ` +${legendsInSquad.length - 3} more` : ""}`);
+
+  lines.push(``);
+  lines.push(`Draft your dream XI → road-to-7-0.vercel.app`);
+
   return lines.join("\n");
 }
 
-export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart, collectionStats }) {
+export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart, collectionStats, newPlayers }) {
   const [copied, setCopied] = useState(false);
   const tourneyStats = computeTournamentStats(results);
   const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
@@ -96,7 +115,7 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
   const wins = results.filter((r) => r.result === "W").length;
   const wonTournament = !eliminated && results.length === 7;
 
-  // Build record comparisons
+  // Build record comparisons — Jobs 5: only show records within striking distance (>30%)
   const recordComparisons = TOURNAMENT_RECORDS.map((rec) => {
     let yourValue = 0;
     let yourPlayer = null;
@@ -118,11 +137,19 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
     const pct = Math.min(100, Math.round((yourValue / rec.record.value) * 100));
     const broken = yourValue >= rec.record.value;
 
+    // Only show if >30% of the record or broken
+    if (!broken && pct < 30) return null;
+
     return { ...rec, yourValue, yourPlayer, pct, broken };
   }).filter(Boolean);
 
+  // Jobs 8: Resolve new player IDs to actual player objects
+  const newPlayerObjects = newPlayers.length > 0
+    ? legends.filter((p) => newPlayers.includes(p.id))
+    : [];
+
   const handleShare = async () => {
-    const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats);
+    const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats, recordComparisons);
     if (navigator.share) {
       try {
         await navigator.share({ title: "Road to 7-0", text, url: "https://road-to-7-0.vercel.app" });
@@ -161,6 +188,43 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           <StatBox label="Goals" value={totalGoals} />
           <StatBox label="Clean Sheets" value={cleanSheets} />
         </div>
+
+        {/* Jobs 8: Collection Highlights */}
+        {newPlayerObjects.length > 0 && (
+          <div className="mb-8 p-5 rounded-xl bg-gradient-to-r from-emerald-accent/10 to-blue-500/10 border border-emerald-accent/30 animate-fade-in">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-emerald-accent" />
+              <h3 className="text-sm font-bold text-emerald-accent uppercase tracking-wider">
+                {newPlayerObjects.length} New {newPlayerObjects.length === 1 ? "Player" : "Players"} Unlocked!
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {newPlayerObjects.slice(0, 11).map((p) => (
+                <span
+                  key={p.id}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    p.isMarqueeLegend
+                      ? "bg-gold/10 border-gold/30 text-gold"
+                      : "bg-surface border-gray-600 text-white"
+                  }`}
+                >
+                  {p.isMarqueeLegend && <Star className="w-3 h-3 fill-current" />}
+                  {p.name}
+                </span>
+              ))}
+              {newPlayerObjects.length > 11 && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs text-gray-400 bg-surface border border-gray-700">
+                  +{newPlayerObjects.length - 11} more
+                </span>
+              )}
+            </div>
+            {collectionStats && (
+              <p className="text-xs text-gray-400 mt-3">
+                Collection: {collectionStats.collected}/{collectionStats.total} players discovered ({collectionStats.percentage}%)
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Tournament Player Stats */}
         {(tourneyStats.scorers.length > 0 || tourneyStats.saves.length > 0) && (
@@ -277,8 +341,8 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           </div>
         </div>
 
-        {/* Collection Progress */}
-        {collectionStats && (
+        {/* Collection Progress (only when no new players to show — avoids duplication) */}
+        {collectionStats && newPlayerObjects.length === 0 && (
           <div className="mb-8 p-4 rounded-xl bg-surface border border-gray-700">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gold/10">

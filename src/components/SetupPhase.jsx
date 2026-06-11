@@ -1,4 +1,5 @@
-import { Swords, Shield, Target, Scale, BookOpen, Trophy } from "lucide-react";
+import { useState } from "react";
+import { Swords, Shield, Target, Scale, BookOpen, Trophy, ChevronDown } from "lucide-react";
 import { playingStyles } from "../data/legends";
 
 const styleIcons = {
@@ -10,10 +11,11 @@ const styleIcons = {
 
 export default function SetupPhase({ onSelectStyle, collectionStats }) {
   const hasPlayed = collectionStats && collectionStats.runs > 0;
+  const [showFormations, setShowFormations] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      <div className="text-center mb-12">
+      <div className="text-center mb-10">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
           Road to <span className="text-emerald-accent">7-0</span>
         </h1>
@@ -57,28 +59,47 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
         </div>
       )}
 
+      {/* Primary CTA — quick start with default formation */}
       <div className="w-full max-w-lg space-y-4">
-        <h2 className="text-xl font-semibold text-gray-200 text-center mb-6">
-          Choose Your Playing Style
-        </h2>
+        <button
+          onClick={() => onSelectStyle("balanced")}
+          className="w-full group flex items-center justify-center gap-3 p-5 rounded-xl bg-emerald-accent text-white
+                     font-bold text-xl hover:bg-emerald-600 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+        >
+          <Swords className="w-6 h-6" />
+          Start Drafting
+        </button>
 
-        {playingStyles.map((style) => (
-          <button
-            key={style.id}
-            onClick={() => onSelectStyle(style.id)}
-            className="w-full group flex items-center gap-4 p-5 rounded-xl bg-surface border border-gray-700
-                       hover:border-emerald-accent hover:bg-surface-light transition-all duration-200 cursor-pointer"
-          >
-            <div className="p-3 rounded-lg bg-emerald-accent/10 text-emerald-accent group-hover:bg-emerald-accent/20 transition-colors">
-              {styleIcons[style.id]}
-            </div>
-            <div className="text-left">
-              <div className="text-xl font-bold text-white">{style.name}</div>
-              <div className="text-xs text-emerald-accent/70 font-medium mb-1">Formation: {style.formation}</div>
-              <div className="text-sm text-gray-400">{style.description}</div>
-            </div>
-          </button>
-        ))}
+        {/* Expandable formation picker for returning players */}
+        <button
+          onClick={() => setShowFormations(!showFormations)}
+          className="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-gray-300
+                     transition-colors cursor-pointer"
+        >
+          <span>Choose a different formation</span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${showFormations ? "rotate-180" : ""}`} />
+        </button>
+
+        {showFormations && (
+          <div className="space-y-3 animate-fade-in">
+            {playingStyles.map((style) => (
+              <button
+                key={style.id}
+                onClick={() => onSelectStyle(style.id)}
+                className="w-full group flex items-center gap-4 p-4 rounded-xl bg-surface border border-gray-700
+                           hover:border-emerald-accent hover:bg-surface-light transition-all duration-200 cursor-pointer"
+              >
+                <div className="p-2.5 rounded-lg bg-emerald-accent/10 text-emerald-accent group-hover:bg-emerald-accent/20 transition-colors">
+                  {styleIcons[style.id]}
+                </div>
+                <div className="text-left flex-1">
+                  <div className="text-lg font-bold text-white">{style.name}</div>
+                  <div className="text-xs text-emerald-accent/70 font-medium">{style.formation}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
