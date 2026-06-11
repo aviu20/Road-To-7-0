@@ -90,7 +90,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0f1a]">
+    <div className="min-h-screen bg-[#060a13]">
       {state.phase === PHASES.SETUP && (
         <SetupPhase onSelectStyle={handleSelectStyle} collectionStats={collectionStats} />
       )}

@@ -26,7 +26,7 @@ export default function PlayerCard({ player, onPick, compact = false }) {
   if (compact) {
     return (
       <div className={`flex items-center gap-3 p-3 rounded-lg border
-        ${isLegend ? "bg-gold/5 border-gold/30" : "bg-surface-light border-gray-700"}`}>
+        ${isLegend ? "bg-gold/5 border-gold/30" : "bg-surface-light/70 border-gray-700/60"}`}>
         {isLegend && <Star className="w-3.5 h-3.5 text-gold fill-gold shrink-0" />}
         <div className={`px-2 py-0.5 rounded text-xs font-bold border ${positionColors[player.position]}`}>
           {player.role}
@@ -38,7 +38,7 @@ export default function PlayerCard({ player, onPick, compact = false }) {
             {player.country} {player.year}
           </span>
         </div>
-        <span className="ml-auto text-emerald-accent font-bold text-sm shrink-0">{player.rating}</span>
+        <span className="ml-auto text-emerald-accent font-display text-sm shrink-0">{player.rating}</span>
       </div>
     );
   }
@@ -46,57 +46,59 @@ export default function PlayerCard({ player, onPick, compact = false }) {
   return (
     <div
       onClick={onPick}
-      className={`group relative p-5 rounded-xl border cursor-pointer
+      className={`group relative p-5 rounded-xl border cursor-pointer surface-noise
                  transition-all duration-200 hover:scale-[1.02]
                  hover:shadow-lg
                  ${isLegend
                    ? "bg-gradient-to-b from-gold/8 to-surface border-gold/40 hover:border-gold hover:shadow-gold/15"
-                   : "bg-surface border-gray-700 hover:border-emerald-accent hover:shadow-emerald-accent/10"
+                   : "bg-surface/80 border-gray-700/60 hover:border-emerald-accent hover:shadow-emerald-accent/10"
                  }`}
     >
       {/* Legend badge */}
       {isLegend && (
-        <div className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold text-black text-[10px] font-bold uppercase tracking-wider">
+        <div className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold text-black text-[10px] font-bold uppercase tracking-wider z-20">
           <Star className="w-3 h-3 fill-black" />
           Legend
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-3">
-        <div className={`px-2 py-0.5 rounded text-xs font-bold border ${positionColors[player.position]}`}>
-          {roleLabels[player.role]}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-3">
+          <div className={`px-2 py-0.5 rounded text-xs font-bold border ${positionColors[player.position]}`}>
+            {roleLabels[player.role]}
+          </div>
+          <div className={`font-display text-3xl ${isLegend ? "text-gold" : "text-emerald-accent"}`}>{player.rating}</div>
         </div>
-        <div className={`text-2xl font-bold ${isLegend ? "text-gold" : "text-emerald-accent"}`}>{player.rating}</div>
-      </div>
 
-      <h3 className={`text-lg font-bold mb-1 ${isLegend ? "text-gold" : "text-white"}`}>{player.name}</h3>
-      <p className="text-sm text-gray-400 mb-3 flex items-center gap-1.5">
-        <Flag country={player.country} />
-        {player.country} • {player.year}
-      </p>
-
-      {/* Stats Bar */}
-      <div className="space-y-2 mb-3">
-        <StatBar label="ATK" value={player.stats.attack} color="bg-red-400" />
-        <StatBar label="MID" value={player.stats.midfield} color="bg-emerald-400" />
-        <StatBar label="DEF" value={player.stats.defense} color="bg-blue-400" />
-      </div>
-
-      {/* Superpower */}
-      {player.superpower && (
-        <div className="mb-3 px-2.5 py-1.5 rounded-lg bg-gold/10 border border-gold/20">
-          <div className="text-[10px] uppercase tracking-wider text-gold/70 mb-0.5">Superpower</div>
-          <div className="text-xs text-gold font-semibold">{player.superpower.name}</div>
-          <div className="text-[10px] text-gold/60">{player.superpower.description}</div>
-        </div>
-      )}
-
-      {/* Trivia — only show for 80+ rated players */}
-      {player.rating >= 80 && (
-        <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-700 pt-3">
-          {player.trivia}
+        <h3 className={`font-display text-lg uppercase tracking-tight mb-1 ${isLegend ? "text-gold" : "text-white"}`}>{player.name}</h3>
+        <p className="text-sm text-gray-400 mb-3 flex items-center gap-1.5">
+          <Flag country={player.country} />
+          {player.country} · {player.year}
         </p>
-      )}
+
+        {/* Stats Bar */}
+        <div className="space-y-2 mb-3">
+          <StatBar label="ATK" value={player.stats.attack} color="bg-red-400" />
+          <StatBar label="MID" value={player.stats.midfield} color="bg-emerald-400" />
+          <StatBar label="DEF" value={player.stats.defense} color="bg-blue-400" />
+        </div>
+
+        {/* Superpower */}
+        {player.superpower && (
+          <div className="mb-3 px-2.5 py-1.5 rounded-lg bg-gold/10 border border-gold/20">
+            <div className="text-[10px] uppercase tracking-wider text-gold/70 mb-0.5">Superpower</div>
+            <div className="text-xs text-gold font-semibold">{player.superpower.name}</div>
+            <div className="text-[10px] text-gold/60">{player.superpower.description}</div>
+          </div>
+        )}
+
+        {/* Trivia */}
+        {player.rating >= 80 && (
+          <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-700/50 pt-3">
+            {player.trivia}
+          </p>
+        )}
+      </div>
 
       <div className={`absolute inset-0 rounded-xl border-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none
         ${isLegend ? "border-gold" : "border-emerald-accent"}`} />
@@ -107,11 +109,11 @@ export default function PlayerCard({ player, onPick, compact = false }) {
 function StatBar({ label, value, color }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500 w-8">{label}</span>
-      <div className="flex-1 h-1.5 rounded-full bg-gray-700 overflow-hidden">
+      <span className="text-[10px] text-gray-500 w-7 font-display uppercase tracking-wider">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-gray-800 overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${value}%` }} />
       </div>
-      <span className="text-xs text-gray-400 w-6 text-right">{value}</span>
+      <span className="text-xs text-gray-400 w-6 text-right font-mono">{value}</span>
     </div>
   );
 }
