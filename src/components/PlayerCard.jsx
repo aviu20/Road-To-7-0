@@ -91,10 +91,12 @@ export default function PlayerCard({ player, onPick, compact = false }) {
         </div>
       )}
 
-      {/* Trivia */}
-      <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-700 pt-3">
-        {player.trivia}
-      </p>
+      {/* Trivia — only show for 80+ rated players */}
+      {player.rating >= 80 && (
+        <p className="text-xs text-gray-500 leading-relaxed border-t border-gray-700 pt-3">
+          {player.trivia}
+        </p>
+      )}
 
       <div className={`absolute inset-0 rounded-xl border-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none
         ${isLegend ? "border-gold" : "border-emerald-accent"}`} />

@@ -1,10 +1,68 @@
 import { useState } from "react";
-import { Trophy, Star, RotateCcw, Award, BookOpen, Share2, Check } from "lucide-react";
-import { calculateTeamStats, checkRecordBreakers } from "../engine/gameEngine";
-import { countryFlags } from "../data/legends";
+import { Trophy, Star, RotateCcw, BookOpen, Share2, Check } from "lucide-react";
+import { computeTournamentStats } from "../engine/gameEngine";
 import PlayerCard from "./PlayerCard";
 
-function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins) {
+// ── Real World Cup tournament records to compare against ──
+const TOURNAMENT_RECORDS = [
+  {
+    id: "top_scorer",
+    label: "Golden Boot",
+    icon: "👟",
+    record: { holder: "Just Fontaine", value: 13, tournament: "1958", country: "France" },
+    getStat: (stats) => stats.scorers[0]?.count || 0,
+    getPlayer: (stats) => stats.scorers[0],
+    unit: "goals",
+  },
+  {
+    id: "team_goals",
+    label: "Team Goals (Tournament)",
+    icon: "⚽",
+    record: { holder: "Hungary", value: 27, tournament: "1954", country: "Hungary" },
+    getTeamStat: (results) => results.reduce((s, r) => s + r.teamGoals, 0),
+    unit: "goals",
+  },
+  {
+    id: "clean_sheets",
+    label: "Clean Sheets",
+    icon: "🧤",
+    record: { holder: "Fabien Barthez", value: 5, tournament: "1998/2006", country: "France" },
+    getTeamStat: (results) => results.filter((r) => r.cleanSheet).length,
+    unit: "clean sheets",
+  },
+  {
+    id: "most_assists",
+    label: "Most Assists",
+    icon: "🎯",
+    record: { holder: "Diego Maradona", value: 8, tournament: "1986/1990", country: "Argentina" },
+    getStat: (stats) => stats.assisters[0]?.count || 0,
+    getPlayer: (stats) => stats.assisters[0],
+    unit: "assists",
+  },
+  {
+    id: "most_saves",
+    label: "Most Saves",
+    icon: "🥅",
+    record: { holder: "Tim Howard", value: 16, tournament: "2014", country: "USA" },
+    getStat: (stats) => stats.saves[0]?.count || 0,
+    getPlayer: (stats) => stats.saves[0],
+    unit: "saves",
+  },
+  {
+    id: "goals_per_match",
+    label: "Goals Per Match",
+    icon: "📊",
+    record: { holder: "Sándor Kocsis", value: 2.2, tournament: "1954", country: "Hungary" },
+    getCustom: (stats, results) => {
+      const top = stats.scorers[0];
+      if (!top) return null;
+      return { value: +(top.count / results.length).toFixed(1), player: top };
+    },
+    unit: "per match",
+  },
+];
+
+function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats) {
   const legends = squad.filter((p) => p.isMarqueeLegend);
   const topNames = legends.slice(0, 3).map((p) => p.name);
   const nameStr = topNames.length > 0 ? topNames.join(", ") : squad.slice(0, 3).map((p) => p.name).join(", ");
@@ -13,11 +71,15 @@ function buildShareText(squad, results, eliminated, wonTournament, totalGoals, w
     ? `I went ${wins}-0 and won the World Cup!`
     : `Eliminated in the ${results[results.length - 1].round}`;
 
+  const topScorer = tourneyStats?.scorers?.[0];
+  const scorerLine = topScorer ? `⭐ ${topScorer.name}: ${topScorer.count} goals` : "";
+
   const lines = [
     `⚽ Road to 7-0 — World Cup Draft`,
     ``,
     resultLine,
     `${totalGoals} goals in ${results.length} matches`,
+    ...(scorerLine ? [scorerLine] : []),
     ``,
     `My squad: ${nameStr}${legends.length > 3 ? ` +${legends.length - 3} more legends` : ""}`,
     ``,
@@ -28,15 +90,39 @@ function buildShareText(squad, results, eliminated, wonTournament, totalGoals, w
 
 export default function GameOverPhase({ squad, results, eliminated, finalRound, onRestart, collectionStats }) {
   const [copied, setCopied] = useState(false);
-  const teamStats = calculateTeamStats(squad);
-  const records = checkRecordBreakers(squad, results);
+  const tourneyStats = computeTournamentStats(results);
   const totalGoals = results.reduce((sum, r) => sum + r.teamGoals, 0);
   const cleanSheets = results.filter((r) => r.cleanSheet).length;
   const wins = results.filter((r) => r.result === "W").length;
   const wonTournament = !eliminated && results.length === 7;
 
+  // Build record comparisons
+  const recordComparisons = TOURNAMENT_RECORDS.map((rec) => {
+    let yourValue = 0;
+    let yourPlayer = null;
+
+    if (rec.getCustom) {
+      const custom = rec.getCustom(tourneyStats, results);
+      if (!custom) return null;
+      yourValue = custom.value;
+      yourPlayer = custom.player;
+    } else if (rec.getTeamStat) {
+      yourValue = rec.getTeamStat(results);
+    } else {
+      yourValue = rec.getStat(tourneyStats);
+      yourPlayer = rec.getPlayer(tourneyStats);
+    }
+
+    if (yourValue === 0) return null;
+
+    const pct = Math.min(100, Math.round((yourValue / rec.record.value) * 100));
+    const broken = yourValue >= rec.record.value;
+
+    return { ...rec, yourValue, yourPlayer, pct, broken };
+  }).filter(Boolean);
+
   const handleShare = async () => {
-    const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins);
+    const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats);
     if (navigator.share) {
       try {
         await navigator.share({ title: "Road to 7-0", text, url: "https://road-to-7-0.vercel.app" });
@@ -76,26 +162,106 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           <StatBox label="Clean Sheets" value={cleanSheets} />
         </div>
 
-        {/* Team Rating */}
-        <div className="p-5 rounded-xl bg-surface border border-gray-700 mb-8">
-          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-4">Team Ratings (Position-Weighted)</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <RatingCircle label="Attack" value={teamStats.attack} color="text-red-400" />
-            <RatingCircle label="Midfield" value={teamStats.midfield} color="text-emerald-accent" />
-            <RatingCircle label="Defense" value={teamStats.defense} color="text-blue-400" />
-          </div>
-        </div>
+        {/* Tournament Player Stats */}
+        {(tourneyStats.scorers.length > 0 || tourneyStats.saves.length > 0) && (
+          <div className="mb-8 p-5 rounded-xl bg-surface border border-gray-700">
+            <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-4">Player Awards</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Top Scorers */}
+              {tourneyStats.scorers.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">⚽</span>
+                    <span className="text-xs font-semibold text-emerald-accent uppercase tracking-wider">Top Scorers</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tourneyStats.scorers.slice(0, 5).map((s, i) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs">
+                        <span className={i === 0 ? "text-white font-semibold" : "text-gray-300"}>
+                          {i === 0 && "🥇 "}{i === 1 && "🥈 "}{i === 2 && "🥉 "}{s.name}
+                        </span>
+                        <span className="text-emerald-accent font-bold">{s.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        {/* Record Breakers — Premium Card Design */}
-        {records.length > 0 && (
+              {/* Top Assists */}
+              {tourneyStats.assisters.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">👟</span>
+                    <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider">Most Assists</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tourneyStats.assisters.slice(0, 5).map((a, i) => (
+                      <div key={a.id} className="flex items-center justify-between text-xs">
+                        <span className={i === 0 ? "text-white font-semibold" : "text-gray-300"}>
+                          {i === 0 && "🥇 "}{i === 1 && "🥈 "}{i === 2 && "🥉 "}{a.name}
+                        </span>
+                        <span className="text-blue-300 font-bold">{a.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* GK Saves */}
+              {tourneyStats.saves.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">🧤</span>
+                    <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Saves</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tourneyStats.saves.slice(0, 3).map((s, i) => (
+                      <div key={s.id} className="flex items-center justify-between text-xs">
+                        <span className={i === 0 ? "text-white font-semibold" : "text-gray-300"}>{s.name}</span>
+                        <span className="text-blue-400 font-bold">{s.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cards */}
+              {(tourneyStats.yellowCards.length > 0 || tourneyStats.redCards.length > 0) && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">🟨</span>
+                    <span className="text-xs font-semibold text-yellow-300 uppercase tracking-wider">Discipline</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tourneyStats.yellowCards.slice(0, 3).map((c) => (
+                      <div key={c.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300">{c.name}</span>
+                        <span className="text-yellow-300 font-bold">{c.count} 🟨</span>
+                      </div>
+                    ))}
+                    {tourneyStats.redCards.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300">{c.name}</span>
+                        <span className="text-red-400 font-bold">{c.count} 🟥</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Records vs Real World Cup History */}
+        {recordComparisons.length > 0 && (
           <div className="mb-8">
             <h3 className="flex items-center gap-2 text-lg font-bold text-gold mb-4">
-              <Award className="w-5 h-5" />
-              Record Breaker Cards
+              <Trophy className="w-5 h-5" />
+              vs World Cup Records
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {records.map((record, i) => (
-                <RecordBreakerCard key={i} record={record} />
+            <div className="space-y-3">
+              {recordComparisons.map((rec) => (
+                <RecordComparison key={rec.id} rec={rec} />
               ))}
             </div>
           </div>
@@ -166,47 +332,52 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
   );
 }
 
-function RecordBreakerCard({ record }) {
-  const { player, headline } = record;
+function RecordComparison({ rec }) {
+  const { icon, label, record, yourValue, yourPlayer, pct, broken, unit } = rec;
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-gold/40 bg-gradient-to-br from-gold/15 via-surface to-gold/5 p-5">
-      {/* Shimmer accent */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gold/10 blur-2xl" />
-      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-gold/8 blur-xl" />
-
-      <div className="relative">
-        {/* Top badge */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/20 border border-gold/30">
-            <Trophy className="w-3.5 h-3.5 text-gold fill-gold" />
-            <span className="text-[10px] font-bold text-gold uppercase tracking-wider">Record Breaker</span>
-          </div>
+    <div className={`p-4 rounded-xl border ${
+      broken
+        ? "border-gold/50 bg-gradient-to-r from-gold/10 to-gold/5"
+        : "border-gray-700 bg-surface"
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-base">{icon}</span>
+          <span className="text-sm font-semibold text-white">{label}</span>
+          {broken && (
+            <span className="px-2 py-0.5 rounded-full bg-gold/20 border border-gold/30 text-[10px] font-bold text-gold uppercase tracking-wider">
+              Record Broken!
+            </span>
+          )}
         </div>
+      </div>
 
-        {/* Player info */}
-        <div className="flex items-start gap-3 mb-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gold/20 border border-gold/30 flex items-center justify-center">
-            <span className="text-xl font-black text-gold">{player.rating}</span>
-          </div>
-          <div>
-            <h4 className="text-white font-bold text-base">{player.name}</h4>
-            <p className="text-gold/60 text-xs flex items-center gap-1">
-              <img src={`https://flagcdn.com/w40/${countryFlags[player.country]}.png`} alt="" className="w-4 h-auto rounded-[1px]" />
-              {player.country} • {player.year}
-            </p>
-          </div>
+      {/* Progress bar */}
+      <div className="flex items-center gap-3 mb-2">
+        <div className="flex-1 h-2 rounded-full bg-gray-700 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              broken ? "bg-gradient-to-r from-gold to-yellow-300" : "bg-emerald-accent"
+            }`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+          />
         </div>
+        <span className={`text-sm font-bold ${broken ? "text-gold" : "text-emerald-accent"}`}>
+          {pct}%
+        </span>
+      </div>
 
-        {/* Headline */}
-        <p className="text-gold font-medium text-sm leading-relaxed">{headline}</p>
-
-        {/* Superpower tag */}
-        {player.superpower && (
-          <div className="mt-3 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gold/10 border border-gold/20">
-            <Star className="w-3 h-3 text-gold fill-gold" />
-            <span className="text-[10px] text-gold/80 font-semibold">{player.superpower.name}</span>
-          </div>
-        )}
+      {/* Comparison */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="text-gray-400">
+          <span className={broken ? "text-gold font-semibold" : "text-white font-semibold"}>
+            {yourPlayer ? yourPlayer.name : "Your XI"}: {yourValue} {yourValue === 1 && unit.endsWith("s") ? unit.slice(0, -1) : unit}
+          </span>
+        </div>
+        <div className="text-gray-500">
+          Record: {record.holder} ({record.value}, {record.tournament})
+        </div>
       </div>
     </div>
   );
@@ -217,15 +388,6 @@ function StatBox({ label, value }) {
     <div className="p-4 rounded-xl bg-surface border border-gray-700 text-center">
       <div className="text-2xl font-bold text-white">{value}</div>
       <div className="text-xs text-gray-400 uppercase tracking-wider">{label}</div>
-    </div>
-  );
-}
-
-function RatingCircle({ label, value, color }) {
-  return (
-    <div className="text-center">
-      <div className={`text-3xl font-bold ${color}`}>{value}</div>
-      <div className="text-xs text-gray-400 mt-1">{label}</div>
     </div>
   );
 }
