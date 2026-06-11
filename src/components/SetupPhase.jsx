@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Swords, Shield, Target, Scale, BookOpen, Trophy, ChevronDown } from "lucide-react";
+import { Swords, Shield, Target, Scale, BookOpen, Trophy, Check } from "lucide-react";
 import { playingStyles } from "../data/legends";
 
 const styleIcons = {
@@ -11,11 +11,11 @@ const styleIcons = {
 
 export default function SetupPhase({ onSelectStyle, collectionStats }) {
   const hasPlayed = collectionStats && collectionStats.runs > 0;
-  const [showFormations, setShowFormations] = useState(false);
+  const [selected, setSelected] = useState(null);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
           Road to <span className="text-emerald-accent">7-0</span>
         </h1>
@@ -27,7 +27,7 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
 
       {/* Collection Badge */}
       {hasPlayed && (
-        <div className="mb-8 p-4 rounded-xl bg-surface border border-gray-700 w-full max-w-lg">
+        <div className="mb-6 p-4 rounded-xl bg-surface border border-gray-700 w-full max-w-lg">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gold/10">
               <BookOpen className="w-5 h-5 text-gold" />
@@ -59,47 +59,66 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
         </div>
       )}
 
-      {/* Primary CTA — quick start with default formation */}
-      <div className="w-full max-w-lg space-y-4">
+      {/* Formation picker — always visible */}
+      <div className="w-full max-w-lg">
+        <h3 className="text-sm uppercase tracking-wider text-gray-500 mb-3 text-center">
+          Choose Your Formation
+        </h3>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {playingStyles.map((style) => (
+            <button
+              key={style.id}
+              onClick={() => setSelected(style.id)}
+              className={`group relative flex flex-col items-center gap-2 p-4 rounded-xl border
+                         transition-all duration-200 cursor-pointer active:scale-[0.97]
+                         ${selected === style.id
+                           ? "border-emerald-accent bg-emerald-accent/10 ring-1 ring-emerald-accent/50"
+                           : "border-gray-700 bg-surface hover:border-gray-500 hover:bg-surface-light"
+                         }`}
+            >
+              {selected === style.id && (
+                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-accent flex items-center justify-center">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              )}
+              <div className={`p-2 rounded-lg transition-colors ${
+                selected === style.id
+                  ? "bg-emerald-accent/20 text-emerald-accent"
+                  : "bg-gray-700/50 text-gray-400 group-hover:text-gray-300"
+              }`}>
+                {styleIcons[style.id]}
+              </div>
+              <div className="text-center">
+                <div className={`text-sm font-bold ${selected === style.id ? "text-emerald-accent" : "text-white"}`}>
+                  {style.name}
+                </div>
+                <div className="text-xs text-gray-500">{style.formation}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Description of selected formation */}
+        {selected && (
+          <p className="text-xs text-gray-400 text-center mb-6 animate-fade-in px-4">
+            {playingStyles.find((s) => s.id === selected)?.description}
+          </p>
+        )}
+
+        {/* Start button — only active when formation is chosen */}
         <button
-          onClick={() => onSelectStyle("balanced")}
-          className="w-full group flex items-center justify-center gap-3 p-5 rounded-xl bg-emerald-accent text-white
-                     font-bold text-xl hover:bg-emerald-600 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+          onClick={() => selected && onSelectStyle(selected)}
+          disabled={!selected}
+          className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl
+                     font-bold text-lg transition-all duration-200 cursor-pointer active:scale-[0.98]
+                     ${selected
+                       ? "bg-emerald-accent text-white hover:bg-emerald-600"
+                       : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                     }`}
         >
-          <Swords className="w-6 h-6" />
+          <Swords className="w-5 h-5" />
           Start Drafting
         </button>
-
-        {/* Expandable formation picker for returning players */}
-        <button
-          onClick={() => setShowFormations(!showFormations)}
-          className="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-500 hover:text-gray-300
-                     transition-colors cursor-pointer"
-        >
-          <span>Choose a different formation</span>
-          <ChevronDown className={`w-4 h-4 transition-transform ${showFormations ? "rotate-180" : ""}`} />
-        </button>
-
-        {showFormations && (
-          <div className="space-y-3 animate-fade-in">
-            {playingStyles.map((style) => (
-              <button
-                key={style.id}
-                onClick={() => onSelectStyle(style.id)}
-                className="w-full group flex items-center gap-4 p-4 rounded-xl bg-surface border border-gray-700
-                           hover:border-emerald-accent hover:bg-surface-light transition-all duration-200 cursor-pointer"
-              >
-                <div className="p-2.5 rounded-lg bg-emerald-accent/10 text-emerald-accent group-hover:bg-emerald-accent/20 transition-colors">
-                  {styleIcons[style.id]}
-                </div>
-                <div className="text-left flex-1">
-                  <div className="text-lg font-bold text-white">{style.name}</div>
-                  <div className="text-xs text-emerald-accent/70 font-medium">{style.formation}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
