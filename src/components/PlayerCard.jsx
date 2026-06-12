@@ -46,9 +46,9 @@ export default function PlayerCard({ player, onPick, compact = false }) {
   return (
     <div
       onClick={onPick}
-      className={`group relative p-5 rounded-xl border cursor-pointer surface-noise
-                 transition-all duration-200 hover:scale-[1.02]
-                 hover:shadow-lg
+      className={`group relative p-3.5 sm:p-5 rounded-xl border cursor-pointer surface-noise
+                 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
+                 hover:shadow-lg min-h-[44px]
                  ${isLegend
                    ? "bg-gradient-to-b from-gold/8 to-surface border-gold/40 hover:border-gold hover:shadow-gold/15"
                    : "bg-surface/80 border-gray-700/60 hover:border-emerald-accent hover:shadow-emerald-accent/10"

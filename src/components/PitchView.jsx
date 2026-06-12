@@ -7,25 +7,32 @@ const roleColors = {
   LW: "#ef4444", RW: "#ef4444", ST: "#ef4444",
 };
 
-export default function PitchView({ formationKey, slots, currentSlot }) {
+export default function PitchView({ formationKey, slots, currentSlot, compact = false }) {
   const positions = formationPositions[formationKey];
   if (!positions) return null;
 
+  const dotSize = compact ? "w-6 h-6" : "w-8 h-8";
+  const dotText = compact ? "text-[9px]" : "text-xs";
+  const nameText = compact ? "text-[8px] max-w-12" : "text-[10px] max-w-16";
+  const circleSize = compact ? "w-16 h-16" : "w-24 h-24";
+  const penaltyW = compact ? "w-28" : "w-40";
+  const penaltyH = compact ? "h-10" : "h-16";
+  const goalW = compact ? "w-14" : "w-20";
+  const goalH = compact ? "h-4" : "h-6";
+
   return (
-    <div className="relative w-full max-w-md mx-auto aspect-[3/4] rounded-xl overflow-hidden border border-emerald-accent/30">
+    <div className={`relative w-full mx-auto rounded-xl overflow-hidden border border-emerald-accent/30 ${
+      compact ? "max-w-xs aspect-[3/4]" : "max-w-md aspect-[3/4]"
+    }`}>
       {/* Pitch background */}
       <div className="absolute inset-0 bg-gradient-to-b from-pitch to-pitch-light">
-        {/* Center circle */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/20" />
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${circleSize} rounded-full border border-white/20`} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/30" />
-        {/* Halfway line */}
         <div className="absolute top-1/2 left-0 right-0 h-px bg-white/20" />
-        {/* Penalty areas */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-16 border-b border-x border-white/20" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border-t border-x border-white/20" />
-        {/* Goal boxes */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 border-b border-x border-white/15" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-6 border-t border-x border-white/15" />
+        <div className={`absolute top-0 left-1/2 -translate-x-1/2 ${penaltyW} ${penaltyH} border-b border-x border-white/20`} />
+        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${penaltyW} ${penaltyH} border-t border-x border-white/20`} />
+        <div className={`absolute top-0 left-1/2 -translate-x-1/2 ${goalW} ${goalH} border-b border-x border-white/15`} />
+        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${goalW} ${goalH} border-t border-x border-white/15`} />
       </div>
 
       {/* Player dots */}
@@ -43,7 +50,7 @@ export default function PitchView({ formationKey, slots, currentSlot }) {
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
+              className={`${dotSize} rounded-full flex items-center justify-center ${dotText} font-bold border-2 transition-all
                 ${filled
                   ? "text-white shadow-lg"
                   : isCurrent
@@ -58,7 +65,7 @@ export default function PitchView({ formationKey, slots, currentSlot }) {
             >
               {filled ? slot.player.rating : pos.role}
             </div>
-            <span className={`text-[10px] mt-0.5 max-w-16 truncate text-center leading-tight
+            <span className={`${nameText} mt-0.5 truncate text-center leading-tight
               ${filled ? "text-white font-medium" : "text-white/40"}`}>
               {filled ? playerName : ""}
             </span>

@@ -162,27 +162,27 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
   };
 
   return (
-    <div className="min-h-screen px-4 py-8 relative z-10">
+    <div className="min-h-screen px-3 sm:px-4 py-6 sm:py-8 relative z-10">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 animate-slide-up">
+        <div className="text-center mb-6 sm:mb-8 animate-slide-up">
           {wonTournament ? (
             <>
-              <Trophy className="w-16 h-16 text-gold mx-auto mb-4 animate-bounce" />
-              <h1 className="font-display text-5xl text-gold mb-2 uppercase tracking-tight">World Champions!</h1>
-              <p className="text-gray-400">Your legends conquered the tournament!</p>
+              <Trophy className="w-12 sm:w-16 h-12 sm:h-16 text-gold mx-auto mb-3 sm:mb-4 animate-bounce" />
+              <h1 className="font-display text-3xl sm:text-5xl text-gold mb-2 uppercase tracking-tight">World Champions!</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Your legends conquered the tournament!</p>
             </>
           ) : (
             <>
-              <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h1 className="font-display text-4xl text-white mb-2 uppercase tracking-tight">Tournament Over</h1>
-              <p className="text-gray-400">Eliminated in the {finalRound}</p>
+              <Star className="w-10 sm:w-12 h-10 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+              <h1 className="font-display text-2xl sm:text-4xl text-white mb-2 uppercase tracking-tight">Tournament Over</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Eliminated in the {finalRound}</p>
             </>
           )}
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
           {[
             { label: "Matches", value: results.length },
             { label: "Wins", value: wins },
@@ -376,10 +376,18 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-center gap-3 pb-8">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+          <button
+            onClick={onRestart}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-xl bg-emerald-accent text-white font-semibold
+                       hover:bg-emerald-600 active:scale-[0.97] transition-all cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Draft Again
+          </button>
           <button
             onClick={handleShare}
-            className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors cursor-pointer
+            className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-xl font-semibold transition-all cursor-pointer active:scale-[0.97]
                        ${copied
                          ? "bg-emerald-accent/20 text-emerald-accent border border-emerald-accent/40"
                          : "bg-surface text-white border border-gray-600 hover:border-gray-400"
@@ -387,14 +395,6 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
           >
             {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
             {copied ? "Copied!" : "Share Result"}
-          </button>
-          <button
-            onClick={onRestart}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-accent text-white font-semibold
-                       hover:bg-emerald-600 transition-colors cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Draft Again
           </button>
         </div>
       </div>
@@ -406,15 +406,14 @@ function RecordComparison({ rec }) {
   const { icon, label, record, yourValue, yourPlayer, pct, broken, unit } = rec;
 
   return (
-    <div className={`p-4 rounded-xl border ${
+    <div className={`p-3 sm:p-4 rounded-xl border ${
       broken
         ? "border-gold/50 bg-gradient-to-r from-gold/10 to-gold/5"
         : "border-gray-700 bg-surface"
     }`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-base">{icon}</span>
-          <span className="text-sm font-semibold text-white">{label}</span>
+      <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 mb-2">
+        <span className="text-base">{icon}</span>
+        <span className="text-xs sm:text-sm font-semibold text-white">{label}</span>
           {broken && (
             <span className="px-2 py-0.5 rounded-full bg-gold/20 border border-gold/30 text-[10px] font-bold text-gold uppercase tracking-wider">
               Record Broken!
@@ -424,7 +423,7 @@ function RecordComparison({ rec }) {
       </div>
 
       {/* Progress bar */}
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-2 sm:gap-3 mb-2">
         <div className="flex-1 h-2 rounded-full bg-gray-700 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
@@ -433,13 +432,13 @@ function RecordComparison({ rec }) {
             style={{ width: `${Math.min(pct, 100)}%` }}
           />
         </div>
-        <span className={`text-sm font-bold ${broken ? "text-gold" : "text-emerald-accent"}`}>
+        <span className={`text-xs sm:text-sm font-bold ${broken ? "text-gold" : "text-emerald-accent"}`}>
           {pct}%
         </span>
       </div>
 
       {/* Comparison */}
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 text-[11px] sm:text-xs">
         <div className="text-gray-400">
           <span className={broken ? "text-gold font-semibold" : "text-white font-semibold"}>
             {yourPlayer ? yourPlayer.name : "Your XI"}: {yourValue} {yourValue === 1 && unit.endsWith("s") ? unit.slice(0, -1) : unit}
@@ -455,9 +454,9 @@ function RecordComparison({ rec }) {
 
 function StatBox({ label, value }) {
   return (
-    <div className="p-4 rounded-xl bg-surface/80 border border-gray-700/60 text-center surface-noise">
-      <div className="font-display text-3xl text-white relative z-10">{value}</div>
-      <div className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-display relative z-10">{label}</div>
+    <div className="p-3 sm:p-4 rounded-xl bg-surface/80 border border-gray-700/60 text-center surface-noise">
+      <div className="font-display text-2xl sm:text-3xl text-white relative z-10">{value}</div>
+      <div className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-[0.15em] font-display relative z-10">{label}</div>
     </div>
   );
 }

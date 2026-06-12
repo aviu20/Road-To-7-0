@@ -110,11 +110,11 @@ export default function TournamentPhase({ results, groupTable, groupAIMatches, b
     : false;
 
   return (
-    <div className="min-h-screen px-4 py-6 pb-32 relative z-10">
+    <div className="min-h-screen px-3 sm:px-4 py-4 sm:py-6 pb-28 sm:pb-32 relative z-10">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-6">
-          <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
-          <h2 className="font-display text-3xl text-white uppercase tracking-tight">Tournament</h2>
+        <div className="text-center mb-4 sm:mb-6">
+          <Trophy className="w-7 sm:w-8 h-7 sm:h-8 text-gold mx-auto mb-1.5 sm:mb-2" />
+          <h2 className="font-display text-2xl sm:text-3xl text-white uppercase tracking-tight">Tournament</h2>
         </div>
 
         {/* Group Table — persistent during group stage */}
@@ -192,12 +192,12 @@ export default function TournamentPhase({ results, groupTable, groupAIMatches, b
         )}
 
         {/* Play Match Button — fixed bottom */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#060a13] via-[#060a13]/95 to-transparent z-30">
+        <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-[#060a13] via-[#060a13]/95 to-transparent z-30">
           <div className="max-w-2xl mx-auto flex justify-center">
             <button
               onClick={handlePlayMatch}
               disabled={animatingMatch !== null}
-              className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-display uppercase tracking-wide transition-all cursor-pointer text-base
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 min-h-[48px] rounded-xl font-display uppercase tracking-wide transition-all cursor-pointer text-base
                          ${animatingMatch !== null
                            ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                            : "bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95 shadow-lg shadow-emerald-accent/25"
@@ -221,20 +221,20 @@ export default function TournamentPhase({ results, groupTable, groupAIMatches, b
 // ─── Group Table ──────────────────────────
 function GroupTable({ table, isGroupDone, qualified }) {
   return (
-    <div className="mb-4 p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise">
+    <div className="mb-4 p-2.5 sm:p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise">
       <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-400 mb-2 relative z-10">Group Standings</h3>
       <div className="overflow-x-auto -mx-1 relative z-10">
-        <table className="w-full text-xs min-w-[320px]">
+        <table className="w-full text-[11px] sm:text-xs min-w-[300px]">
           <thead>
             <tr className="text-gray-500 uppercase font-display tracking-wider">
-              <th className="text-left pb-1.5 pl-1 w-5">#</th>
-              <th className="text-left pb-1.5">Team</th>
-              <th className="text-center pb-1.5 w-7">P</th>
-              <th className="text-center pb-1.5 w-7">W</th>
-              <th className="text-center pb-1.5 w-7">D</th>
-              <th className="text-center pb-1.5 w-7">L</th>
-              <th className="text-center pb-1.5 w-8">GD</th>
-              <th className="text-center pb-1.5 w-8 font-bold">Pts</th>
+              <th className="text-left pb-1.5 pl-1 w-5 sticky left-0 bg-surface/90">#</th>
+              <th className="text-left pb-1.5 sticky left-5 bg-surface/90">Team</th>
+              <th className="text-center pb-1.5 w-6 sm:w-7">P</th>
+              <th className="text-center pb-1.5 w-6 sm:w-7">W</th>
+              <th className="text-center pb-1.5 w-6 sm:w-7">D</th>
+              <th className="text-center pb-1.5 w-6 sm:w-7">L</th>
+              <th className="text-center pb-1.5 w-7 sm:w-8">GD</th>
+              <th className="text-center pb-1.5 w-7 sm:w-8 font-bold">Pts</th>
             </tr>
           </thead>
           <tbody>
@@ -248,8 +248,8 @@ function GroupTable({ table, isGroupDone, qualified }) {
                     team.isUser ? "text-emerald-accent font-semibold" : "text-gray-300"
                   } ${isQualified ? "bg-emerald-accent/5" : i >= 2 && isGroupDone ? "opacity-40" : ""}`}
                 >
-                  <td className="py-1.5 pl-1 text-gray-500">{i + 1}</td>
-                  <td className="py-1.5 truncate max-w-[120px]">{team.isUser ? "Your XI" : team.name}</td>
+                  <td className="py-1.5 pl-1 text-gray-500 sticky left-0 bg-surface/90">{i + 1}</td>
+                  <td className="py-1.5 truncate max-w-[100px] sm:max-w-[120px] sticky left-5 bg-surface/90">{team.isUser ? "Your XI" : team.name}</td>
                   <td className="text-center py-1.5">{team.played}</td>
                   <td className="text-center py-1.5">{team.wins}</td>
                   <td className="text-center py-1.5">{team.draws}</td>
@@ -301,24 +301,27 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
   const visibleRoundNames = roundNames.slice(0, visibleRoundCount);
 
   return (
-    <div className="mb-4 p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise animate-slide-up">
+    <div className="mb-4 p-2.5 sm:p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise animate-slide-up">
       <div className="relative z-10">
-        <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-400 mb-3">Knockout Bracket</h3>
-        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-400">Knockout Bracket</h3>
+          <span className="text-[10px] text-gray-600 sm:hidden">Scroll →</span>
+        </div>
+        <div className="overflow-x-auto -mx-1 px-1 pb-2 scrollbar-thin">
           {/* Round headers */}
-          <div className="flex mb-1.5" style={{ minWidth: visibleRoundCount * 130 + 50 }}>
+          <div className="flex mb-1.5" style={{ minWidth: visibleRoundCount * 110 + 40 }}>
             {visibleRoundNames.map((name, i) => (
               <div key={i} className="flex items-center" style={{ flex: '1 1 0' }}>
-                <div className="flex-1 text-center font-display text-[9px] uppercase tracking-[0.12em] text-gray-500">
+                <div className="flex-1 text-center font-display text-[8px] sm:text-[9px] uppercase tracking-[0.12em] text-gray-500">
                   {name}
                 </div>
-                {i < visibleRoundNames.length - 1 && <div className="w-3 shrink-0" />}
+                {i < visibleRoundNames.length - 1 && <div className="w-2 sm:w-3 shrink-0" />}
               </div>
             ))}
-            {visibleRoundCount === rounds.length && <div className="w-8 shrink-0" />}
+            {visibleRoundCount === rounds.length && <div className="w-6 sm:w-8 shrink-0" />}
           </div>
           {/* Bracket body */}
-          <div className="flex" style={{ height: 380, minWidth: visibleRoundCount * 130 + 50 }}>
+          <div className="flex" style={{ height: 320, minWidth: visibleRoundCount * 110 + 40 }}>
             {visibleRounds.map((round, ri) => (
               <div key={ri} className="contents">
                 {/* Match column */}
@@ -371,7 +374,7 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
                 </div>
                 {/* Connector lines */}
                 {ri < visibleRounds.length - 1 && (
-                  <div className="w-3 shrink-0 flex flex-col">
+                  <div className="w-2 sm:w-3 shrink-0 flex flex-col">
                     {Array.from({ length: round.length / 2 }, (_, i) => (
                       <div key={i} className="flex flex-col flex-1">
                         <div className="flex-1 border-r border-b border-gray-600/30 rounded-br-sm" />
@@ -383,8 +386,8 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
               </div>
             ))}
             {visibleRoundCount === rounds.length && (
-              <div className="w-8 shrink-0 flex flex-col justify-center items-center">
-                <Trophy className="w-5 h-5 text-gold/60" />
+              <div className="w-6 sm:w-8 shrink-0 flex flex-col justify-center items-center">
+                <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-gold/60" />
               </div>
             )}
           </div>
@@ -495,12 +498,12 @@ function LiveMatchCard({ match, onComplete, onSkip }) {
   const resultTextColors = { W: "text-emerald-accent", D: "text-gold", L: "text-red-400" };
 
   return (
-    <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-500 surface-noise ${
+    <div className={`p-2.5 sm:p-4 rounded-xl border transition-all duration-500 surface-noise ${
       scoreRevealed ? resultColors[match.result] : "border-emerald-accent/30 bg-emerald-accent/5"
     } ${!scoreRevealed ? "animate-glow-pulse" : ""}`}>
-      <div className="flex items-center justify-between mb-3 relative z-10">
+      <div className="flex items-center justify-between mb-2.5 sm:mb-3 relative z-10">
         <div className="min-w-0 flex-1">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1.5 sm:gap-2">
             <span className="truncate font-display tracking-[0.1em]">{match.round}</span>
             {!scoreRevealed && (
               <span className="inline-flex items-center gap-1 text-emerald-accent shrink-0">
@@ -539,7 +542,7 @@ function LiveMatchCard({ match, onComplete, onSkip }) {
         </div>
       </div>
 
-      <div ref={containerRef} className="border-t border-gray-700/40 pt-2 space-y-1 max-h-48 sm:max-h-64 overflow-y-auto relative z-10">
+      <div ref={containerRef} className="border-t border-gray-700/40 pt-1.5 sm:pt-2 space-y-0.5 sm:space-y-1 max-h-40 sm:max-h-64 overflow-y-auto relative z-10 overscroll-contain">
         {events.slice(0, revealedCount).map((event, i) => (
           <MatchEvent key={i} event={event} animate={i === revealedCount - 1} />
         ))}
@@ -579,12 +582,12 @@ function MatchCard({ match }) {
 
   return (
     <div
-      className={`p-3 sm:p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-300 cursor-pointer surface-noise`}
+      className={`p-2.5 sm:p-4 rounded-xl border ${resultColors[match.result]} transition-all duration-300 cursor-pointer surface-noise min-h-[44px] active:scale-[0.99]`}
       onClick={() => setExpanded(!expanded)}
     >
       <div className="flex items-center justify-between relative z-10">
         <div className="min-w-0 flex-1">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-1 font-display tracking-[0.1em]">{match.round}</div>
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 font-display tracking-[0.1em]">{match.round}</div>
           <div className="text-white font-medium text-sm sm:text-base truncate">
             Your XI <span className="text-gray-500">vs</span> {match.opponent}
           </div>

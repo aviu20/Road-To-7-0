@@ -14,14 +14,14 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
   const [selected, setSelected] = useState(null);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative z-10">
+    <div className="min-h-screen flex flex-col items-center justify-center px-3 sm:px-4 py-8 sm:py-12 relative z-10">
       {/* Title block */}
-      <div className="text-center mb-10 animate-slide-up">
-        <h1 className="font-display text-5xl md:text-7xl text-white mb-1 tracking-tight uppercase">
+      <div className="text-center mb-8 sm:mb-10 animate-slide-up">
+        <h1 className="font-display text-4xl sm:text-5xl md:text-7xl text-white mb-1 tracking-tight uppercase">
           <span className="text-emerald-accent">2026</span> World Cup
         </h1>
-        <div className="w-16 h-0.5 bg-emerald-accent/60 mx-auto my-4 rounded-full" />
-        <p className="text-gray-400 text-base max-w-sm mx-auto leading-relaxed">
+        <div className="w-12 sm:w-16 h-0.5 bg-emerald-accent/60 mx-auto my-3 sm:my-4 rounded-full" />
+        <p className="text-gray-400 text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
           Draft legends from every era. Build your dream XI.
           Win the World Cup.
         </p>
@@ -66,12 +66,12 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
         <h3 className="font-display text-xs uppercase tracking-[0.2em] text-gray-500 mb-3 text-center">
           Choose Your Formation
         </h3>
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-6">
           {playingStyles.map((style, i) => (
             <button
               key={style.id}
               onClick={() => setSelected(style.id)}
-              className={`group relative flex flex-col items-center gap-2 p-4 rounded-xl border
+              className={`group relative flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 min-h-[80px] rounded-xl border
                          transition-all duration-200 cursor-pointer active:scale-[0.97] surface-noise
                          animate-card-enter
                          ${selected === style.id
@@ -113,8 +113,8 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
         <button
           onClick={() => selected && onSelectStyle(selected)}
           disabled={!selected}
-          className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl
-                     font-display text-lg uppercase tracking-wide transition-all duration-200 cursor-pointer active:scale-[0.98]
+          className={`w-full flex items-center justify-center gap-3 p-4 min-h-[48px] rounded-xl
+                     font-display text-base sm:text-lg uppercase tracking-wide transition-all duration-200 cursor-pointer active:scale-[0.97]
                      ${selected
                        ? "bg-emerald-accent text-white hover:bg-emerald-600 shadow-lg shadow-emerald-accent/20"
                        : "bg-gray-800 text-gray-500 cursor-not-allowed"

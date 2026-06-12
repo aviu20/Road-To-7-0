@@ -48,24 +48,24 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
   const currentRole = slots[currentSlot]?.role;
 
   return (
-    <div className="min-h-screen px-4 py-6 relative z-10">
+    <div className="min-h-screen px-3 sm:px-4 py-4 sm:py-6 relative z-10">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h2 className="font-display text-2xl text-white flex items-center gap-2 uppercase tracking-tight">
+            <h2 className="font-display text-xl sm:text-2xl text-white flex items-center gap-2 uppercase tracking-tight">
               Round {filledCount + 1}<span className="text-gray-500">/11</span>
               {isFinalPick && <Trophy className="w-5 h-5 text-gold animate-pulse" />}
             </h2>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-xs sm:text-sm">
               Picking: <span className="text-emerald-accent font-semibold">{roleLabels[currentRole]}</span>
             </p>
           </div>
           <button
             onClick={onRespin}
             disabled={respinsLeft === 0 || spinning}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gold/10 text-gold border border-gold/30
-                       hover:bg-gold/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 min-h-[44px] rounded-lg bg-gold/10 text-gold border border-gold/30
+                       hover:bg-gold/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm"
           >
             <RotateCcw className="w-4 h-4" />
             Re-spin ({respinsLeft})
@@ -73,9 +73,9 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
         </div>
 
         {/* Draft progress bar */}
-        <div className="mb-5">
+        <div className="mb-4 sm:mb-5">
           <div className="flex items-center gap-2 mb-1">
-            <div className="flex-1 h-1.5 rounded-full bg-gray-800 overflow-hidden">
+            <div className="flex-1 h-2 sm:h-1.5 rounded-full bg-gray-800 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   isFinalPick ? "bg-gradient-to-r from-gold to-yellow-300" : "bg-emerald-accent"
@@ -95,8 +95,8 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
         </div>
 
         {/* Slot Machine Display */}
-        <div className="flex justify-center mb-6">
-          <div className={`flex items-center gap-3 px-6 py-3 rounded-xl bg-surface/80 border backdrop-blur-sm transition-all surface-noise ${
+        <div className="flex justify-center mb-4 sm:mb-6">
+          <div className={`flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-surface/80 border backdrop-blur-sm transition-all surface-noise ${
             isFinalPick ? "border-gold/50" : "border-gray-700/60"
           } ${spinning ? "animate-pulse" : ""}`}>
             <span className="text-3xl relative z-10">{spinning ? spinDisplay.flag : "⚽"}</span>
@@ -112,15 +112,21 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
           </div>
         </div>
 
+        {/* Mobile formation — compact, always visible */}
+        <div className="lg:hidden mb-4">
+          <PitchView formationKey={formationKey} slots={slots} currentSlot={currentSlot} compact />
+        </div>
+
         {/* Main layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Desktop formation — full size */}
           <div className="hidden lg:block lg:col-span-1">
             <PitchView formationKey={formationKey} slots={slots} currentSlot={currentSlot} />
           </div>
 
           <div className="lg:col-span-2">
             {!spinning && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {choices.map((player, i) => (
                   <div key={player.id} className="animate-card-enter" style={{ animationDelay: `${i * 0.08}s` }}>
                     <PlayerCard player={player} onPick={() => onPick(player)} />
@@ -129,22 +135,12 @@ export default function DraftPhase({ formationKey, slots, currentSlot, choices, 
               </div>
             )}
             {spinning && (
-              <div className="flex items-center justify-center h-48 text-gray-500 text-sm">
+              <div className="flex items-center justify-center h-36 sm:h-48 text-gray-500 text-sm">
                 Scanning World Cup archives...
               </div>
             )}
           </div>
         </div>
-
-        {/* Mobile pitch */}
-        <details className="lg:hidden mt-6">
-          <summary className="font-display text-xs text-gray-500 uppercase tracking-[0.15em] cursor-pointer hover:text-gray-300 transition-colors">
-            View Formation
-          </summary>
-          <div className="mt-3">
-            <PitchView formationKey={formationKey} slots={slots} currentSlot={currentSlot} />
-          </div>
-        </details>
       </div>
     </div>
   );
