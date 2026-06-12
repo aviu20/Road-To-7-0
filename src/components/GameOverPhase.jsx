@@ -65,11 +65,11 @@ const TOURNAMENT_RECORDS = [
 
 // ── Share text: build around the most interesting thing that happened ──
 function buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats, recordComparisons) {
-  const lines = [`⚽ Road to 7-0 — World Cup Draft`, ``];
+  const lines = [`⚽ 2026 World Cup — Dream XI Draft`, ``];
 
   // Lead with the headline
   if (wonTournament) {
-    lines.push(`🏆 I went ${wins}-0 and won the World Cup!`);
+    lines.push(`🏆 I won the 2026 World Cup!`);
   } else {
     lines.push(`Eliminated in the ${results[results.length - 1].round}`);
   }
@@ -152,7 +152,7 @@ export default function GameOverPhase({ squad, results, eliminated, finalRound, 
     const text = buildShareText(squad, results, eliminated, wonTournament, totalGoals, wins, tourneyStats, recordComparisons);
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Road to 7-0", text, url: "https://road-to-7-0.vercel.app" });
+        await navigator.share({ title: "2026 World Cup", text, url: "https://road-to-7-0.vercel.app" });
         return;
       } catch {}
     }

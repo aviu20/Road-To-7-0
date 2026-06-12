@@ -18,12 +18,12 @@ export default function SetupPhase({ onSelectStyle, collectionStats }) {
       {/* Title block */}
       <div className="text-center mb-10 animate-slide-up">
         <h1 className="font-display text-5xl md:text-7xl text-white mb-1 tracking-tight uppercase">
-          Road to <span className="text-emerald-accent">7-0</span>
+          <span className="text-emerald-accent">2026</span> World Cup
         </h1>
         <div className="w-16 h-0.5 bg-emerald-accent/60 mx-auto my-4 rounded-full" />
         <p className="text-gray-400 text-base max-w-sm mx-auto leading-relaxed">
-          Draft legendary icons from every World Cup era.
-          Build your dream XI. Conquer the tournament.
+          Draft legends from every era. Build your dream XI.
+          Win the World Cup.
         </p>
       </div>
 

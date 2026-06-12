@@ -22,7 +22,7 @@ function getPostMatchLine(match) {
   return "";
 }
 
-export default function TournamentPhase({ results, groupTable, bracket, onComplete }) {
+export default function TournamentPhase({ results, groupTable, groupAIMatches, bracket, onComplete }) {
   const [visibleMatches, setVisibleMatches] = useState(0);
   const [animatingMatch, setAnimatingMatch] = useState(null);
   const [bracketDone, setBracketDone] = useState(false);
@@ -57,22 +57,50 @@ export default function TournamentPhase({ results, groupTable, bracket, onComple
 
   const currentAnimIdx = animatingMatch;
 
-  const progressiveTable = groupTable ? groupTable.map((team) => {
-    if (!team.isUser) return team;
-    const visible = groupMatches.slice(0, visibleMatches);
-    const w = visible.filter((m) => m.result === "W").length;
-    const d = visible.filter((m) => m.result === "D").length;
-    const l = visible.filter((m) => m.result === "L").length;
-    const gf = visible.reduce((s, m) => s + m.teamGoals, 0);
-    const ga = visible.reduce((s, m) => s + m.oppGoals, 0);
-    return {
-      ...team,
-      played: visibleMatches,
-      wins: w, draws: d, losses: l,
-      goalsFor: gf, goalsAgainst: ga,
-      points: w * 3 + d,
-    };
-  }) : null;
+  const progressiveTable = (() => {
+    if (!groupTable) return null;
+    const stats = {};
+    for (const t of groupTable) {
+      stats[t.name] = {
+        name: t.name, isUser: t.isUser,
+        played: 0, wins: 0, draws: 0, losses: 0,
+        goalsFor: 0, goalsAgainst: 0, points: 0,
+      };
+    }
+    for (let i = 0; i < visibleMatches && i < groupMatches.length; i++) {
+      const m = groupMatches[i];
+      const u = stats["Your XI"];
+      const o = stats[m.opponent];
+      if (!u || !o) continue;
+      u.played++; o.played++;
+      u.goalsFor += m.teamGoals; u.goalsAgainst += m.oppGoals;
+      o.goalsFor += m.oppGoals; o.goalsAgainst += m.teamGoals;
+      if (m.result === "W") { u.wins++; u.points += 3; o.losses++; }
+      else if (m.result === "L") { o.wins++; o.points += 3; u.losses++; }
+      else { u.draws++; u.points++; o.draws++; o.points++; }
+    }
+    if (groupAIMatches) {
+      for (let i = 0; i < visibleMatches && i < groupAIMatches.length; i++) {
+        const aim = groupAIMatches[i];
+        const h = stats[aim.home];
+        const a = stats[aim.away];
+        if (!h || !a) continue;
+        h.played++; a.played++;
+        h.goalsFor += aim.homeGoals; h.goalsAgainst += aim.awayGoals;
+        a.goalsFor += aim.awayGoals; a.goalsAgainst += aim.homeGoals;
+        if (aim.homeGoals > aim.awayGoals) { h.wins++; h.points += 3; a.losses++; }
+        else if (aim.homeGoals < aim.awayGoals) { a.wins++; a.points += 3; h.losses++; }
+        else { h.draws++; h.points++; a.draws++; a.points++; }
+      }
+    }
+    return Object.values(stats).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const gdA = a.goalsFor - a.goalsAgainst;
+      const gdB = b.goalsFor - b.goalsAgainst;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.goalsFor - a.goalsFor;
+    });
+  })();
 
   const nextMatchIdx = animatingMatch !== null ? animatingMatch : visibleMatches;
   const nextMatch = results[nextMatchIdx];
@@ -255,7 +283,9 @@ function shortenTeamName(name) {
     }
     return `'${m[1].slice(2)} ${country}`;
   }
-  return name;
+  return name
+    .replace("Bosnia and Herzegovina", "Bosnia")
+    .replace("Côte d'Ivoire", "Côte d'Iv.");
 }
 
 function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
@@ -264,6 +294,11 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
   const eliminatedAtRound = userEliminated
     ? knockoutMatches.slice(0, knockoutVisible).findIndex((m) => m.result === "L")
     : -1;
+  const visibleRoundCount = userEliminated
+    ? Math.max(1, knockoutVisible)
+    : Math.min(knockoutVisible + 1, rounds.length);
+  const visibleRounds = rounds.slice(0, visibleRoundCount);
+  const visibleRoundNames = roundNames.slice(0, visibleRoundCount);
 
   return (
     <div className="mb-4 p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise animate-slide-up">
@@ -271,20 +306,20 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
         <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-400 mb-3">Knockout Bracket</h3>
         <div className="overflow-x-auto -mx-1 px-1 pb-1">
           {/* Round headers */}
-          <div className="flex min-w-[500px] mb-1.5">
-            {roundNames.map((name, i) => (
+          <div className="flex mb-1.5" style={{ minWidth: visibleRoundCount * 130 + 50 }}>
+            {visibleRoundNames.map((name, i) => (
               <div key={i} className="flex items-center" style={{ flex: '1 1 0' }}>
                 <div className="flex-1 text-center font-display text-[9px] uppercase tracking-[0.12em] text-gray-500">
                   {name}
                 </div>
-                {i < roundNames.length - 1 && <div className="w-3 shrink-0" />}
+                {i < visibleRoundNames.length - 1 && <div className="w-3 shrink-0" />}
               </div>
             ))}
-            <div className="w-8 shrink-0" />
+            {visibleRoundCount === rounds.length && <div className="w-8 shrink-0" />}
           </div>
           {/* Bracket body */}
-          <div className="flex min-w-[500px]" style={{ height: 380 }}>
-            {rounds.map((round, ri) => (
+          <div className="flex" style={{ height: 380, minWidth: visibleRoundCount * 130 + 50 }}>
+            {visibleRounds.map((round, ri) => (
               <div key={ri} className="contents">
                 {/* Match column */}
                 <div className="flex-1 flex flex-col justify-around gap-0">
@@ -335,7 +370,7 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
                   })}
                 </div>
                 {/* Connector lines */}
-                {ri < rounds.length - 1 && (
+                {ri < visibleRounds.length - 1 && (
                   <div className="w-3 shrink-0 flex flex-col">
                     {Array.from({ length: round.length / 2 }, (_, i) => (
                       <div key={i} className="flex flex-col flex-1">
@@ -347,10 +382,11 @@ function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
                 )}
               </div>
             ))}
-            {/* Champion trophy */}
-            <div className="w-8 shrink-0 flex flex-col justify-center items-center">
-              <Trophy className="w-5 h-5 text-gold/60" />
-            </div>
+            {visibleRoundCount === rounds.length && (
+              <div className="w-8 shrink-0 flex flex-col justify-center items-center">
+                <Trophy className="w-5 h-5 text-gold/60" />
+              </div>
+            )}
           </div>
         </div>
       </div>

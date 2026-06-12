@@ -3490,21 +3490,3 @@ export const countryFlags = {
   "West Germany": "de",
 };
 
-export const historicOpponents = [
-  { name: "1954 Hungary", attack: 90, midfield: 84, defense: 68, era: "Golden Age" },
-  { name: "1958 Sweden", attack: 78, midfield: 76, defense: 80, era: "Nordic Grit" },
-  { name: "1966 Portugal", attack: 85, midfield: 80, defense: 72, era: "Eusébio's Fire" },
-  { name: "1970 Italy", attack: 82, midfield: 80, defense: 86, era: "Catenaccio" },
-  { name: "1978 Argentina", attack: 84, midfield: 82, defense: 76, era: "Host Nation" },
-  { name: "1982 Brazil", attack: 92, midfield: 90, defense: 62, era: "Beautiful Losers" },
-  { name: "1986 France", attack: 82, midfield: 86, defense: 74, era: "Platini's Magic" },
-  { name: "1990 Cameroon", attack: 78, midfield: 72, defense: 76, era: "Milla Time" },
-  { name: "1994 Bulgaria", attack: 80, midfield: 78, defense: 72, era: "Stoichkov's Dream" },
-  { name: "1998 Croatia", attack: 82, midfield: 84, defense: 76, era: "Šuker's Surprise" },
-  { name: "2002 South Korea", attack: 74, midfield: 78, defense: 82, era: "Red Devils" },
-  { name: "2006 Portugal", attack: 84, midfield: 86, defense: 78, era: "Figo's Last Dance" },
-  { name: "2010 Uruguay", attack: 80, midfield: 78, defense: 84, era: "Forlán's Firepower" },
-  { name: "2014 Colombia", attack: 86, midfield: 82, defense: 74, era: "James' Volley" },
-  { name: "2018 Belgium", attack: 88, midfield: 86, defense: 78, era: "Golden Generation" },
-  { name: "2022 Japan", attack: 78, midfield: 82, defense: 80, era: "Giant Killers" },
-];

@@ -52,6 +52,7 @@ export default function App() {
           phase: PHASES.TOURNAMENT,
           tournamentResults: tournament.results,
           groupTable: tournament.groupTable,
+          groupAIMatches: tournament.groupAIMatches,
           eliminated: tournament.eliminated,
           finalRound: tournament.finalRound,
           bracket: tournament.bracket,
@@ -110,6 +111,7 @@ export default function App() {
         <TournamentPhase
           results={state.tournamentResults}
           groupTable={state.groupTable}
+          groupAIMatches={state.groupAIMatches}
           bracket={state.bracket}
           onComplete={handleTournamentComplete}
         />
