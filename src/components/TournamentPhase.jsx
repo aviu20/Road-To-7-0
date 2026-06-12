@@ -22,12 +22,9 @@ function getPostMatchLine(match) {
   return "";
 }
 
-const KNOCKOUT_ROUNDS = ["Round of 16", "Quarter-Final", "Semi-Final", "Final"];
-
-export default function TournamentPhase({ results, groupTable, onComplete }) {
+export default function TournamentPhase({ results, groupTable, groupAIMatches, bracket, onComplete }) {
   const [visibleMatches, setVisibleMatches] = useState(0);
   const [animatingMatch, setAnimatingMatch] = useState(null);
-  const [showBracket, setShowBracket] = useState(false);
   const [bracketDone, setBracketDone] = useState(false);
 
   const groupMatches = results.filter((r) => r.round.startsWith("Group"));
@@ -36,22 +33,17 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
   const knockoutVisible = Math.max(0, visibleMatches - groupMatches.length);
   const allRevealed = visibleMatches >= results.length;
 
-  const justFinishedGroup = isGroupDone && knockoutVisible === 0 && !showBracket && !bracketDone && animatingMatch === null;
+  const justFinishedGroup = isGroupDone && knockoutVisible === 0 && !bracketDone && animatingMatch === null;
 
   const handlePlayMatch = () => {
     if (allRevealed) {
       onComplete();
-    } else if (justFinishedGroup && !bracketDone) {
-      setShowBracket(true);
+    } else if (justFinishedGroup) {
+      setBracketDone(true);
     } else if (animatingMatch === null) {
       setAnimatingMatch(visibleMatches);
     }
   };
-
-  const handleBracketComplete = useCallback(() => {
-    setShowBracket(false);
-    setBracketDone(true);
-  }, []);
 
   const handleAnimationComplete = useCallback(() => {
     setVisibleMatches((v) => v + 1);
@@ -65,22 +57,50 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
 
   const currentAnimIdx = animatingMatch;
 
-  const progressiveTable = groupTable ? groupTable.map((team) => {
-    if (!team.isUser) return team;
-    const visible = groupMatches.slice(0, visibleMatches);
-    const w = visible.filter((m) => m.result === "W").length;
-    const d = visible.filter((m) => m.result === "D").length;
-    const l = visible.filter((m) => m.result === "L").length;
-    const gf = visible.reduce((s, m) => s + m.teamGoals, 0);
-    const ga = visible.reduce((s, m) => s + m.oppGoals, 0);
-    return {
-      ...team,
-      played: visibleMatches,
-      wins: w, draws: d, losses: l,
-      goalsFor: gf, goalsAgainst: ga,
-      points: w * 3 + d,
-    };
-  }) : null;
+  const progressiveTable = (() => {
+    if (!groupTable) return null;
+    const stats = {};
+    for (const t of groupTable) {
+      stats[t.name] = {
+        name: t.name, isUser: t.isUser,
+        played: 0, wins: 0, draws: 0, losses: 0,
+        goalsFor: 0, goalsAgainst: 0, points: 0,
+      };
+    }
+    for (let i = 0; i < visibleMatches && i < groupMatches.length; i++) {
+      const m = groupMatches[i];
+      const u = stats["Your XI"];
+      const o = stats[m.opponent];
+      if (!u || !o) continue;
+      u.played++; o.played++;
+      u.goalsFor += m.teamGoals; u.goalsAgainst += m.oppGoals;
+      o.goalsFor += m.oppGoals; o.goalsAgainst += m.teamGoals;
+      if (m.result === "W") { u.wins++; u.points += 3; o.losses++; }
+      else if (m.result === "L") { o.wins++; o.points += 3; u.losses++; }
+      else { u.draws++; u.points++; o.draws++; o.points++; }
+    }
+    if (groupAIMatches) {
+      for (let i = 0; i < visibleMatches && i < groupAIMatches.length; i++) {
+        const aim = groupAIMatches[i];
+        const h = stats[aim.home];
+        const a = stats[aim.away];
+        if (!h || !a) continue;
+        h.played++; a.played++;
+        h.goalsFor += aim.homeGoals; h.goalsAgainst += aim.awayGoals;
+        a.goalsFor += aim.awayGoals; a.goalsAgainst += aim.homeGoals;
+        if (aim.homeGoals > aim.awayGoals) { h.wins++; h.points += 3; a.losses++; }
+        else if (aim.homeGoals < aim.awayGoals) { a.wins++; a.points += 3; h.losses++; }
+        else { h.draws++; h.points++; a.draws++; a.points++; }
+      }
+    }
+    return Object.values(stats).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const gdA = a.goalsFor - a.goalsAgainst;
+      const gdB = b.goalsFor - b.goalsAgainst;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.goalsFor - a.goalsFor;
+    });
+  })();
 
   const nextMatchIdx = animatingMatch !== null ? animatingMatch : visibleMatches;
   const nextMatch = results[nextMatchIdx];
@@ -101,17 +121,21 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         {progressiveTable && !isGroupDone && (
           <GroupTable table={progressiveTable} isGroupDone={false} />
         )}
-        {progressiveTable && isGroupDone && !bracketDone && !showBracket && (
+        {progressiveTable && isGroupDone && !bracketDone && (
           <GroupTable table={progressiveTable} isGroupDone={true} qualified={userQualified} />
         )}
 
-        {/* Bracket Animation */}
-        {showBracket && (
-          <KnockoutBracket knockoutMatches={knockoutMatches} onComplete={handleBracketComplete} />
+        {/* Knockout Bracket — persistent during knockouts */}
+        {bracketDone && bracket && (
+          <KnockoutBracketDisplay
+            bracket={bracket}
+            knockoutMatches={knockoutMatches}
+            knockoutVisible={knockoutVisible}
+          />
         )}
 
         {/* Group Matches */}
-        {groupMatches.length > 0 && (visibleMatches > 0 || currentAnimIdx !== null) && !showBracket && (
+        {groupMatches.length > 0 && (visibleMatches > 0 || currentAnimIdx !== null) && !bracketDone && (
           <div className="mb-4">
             <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-500 mb-2">Group Stage</h3>
             <div className="space-y-3">
@@ -151,14 +175,14 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Post-match story beat */}
-        {visibleMatches > 0 && animatingMatch === null && !allRevealed && !showBracket && (
+        {visibleMatches > 0 && animatingMatch === null && !allRevealed && !justFinishedGroup && (
           <div className="text-center my-4 animate-fade-in">
             <p className="text-sm text-gray-400 italic">{getPostMatchLine(results[visibleMatches - 1])}</p>
           </div>
         )}
 
         {/* Pre-match narrative */}
-        {!allRevealed && animatingMatch === null && nextMatch && !showBracket && !justFinishedGroup && bracketDone && (
+        {!allRevealed && animatingMatch === null && nextMatch && bracketDone && (
           <div className="text-center mt-2 mb-4">
             <p className="text-xs text-gray-500">
               Next: <span className="text-white font-medium">Your XI vs {nextMatch.opponent}</span>
@@ -168,29 +192,27 @@ export default function TournamentPhase({ results, groupTable, onComplete }) {
         )}
 
         {/* Play Match Button — fixed bottom */}
-        {!showBracket && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#060a13] via-[#060a13]/95 to-transparent z-30">
-            <div className="max-w-2xl mx-auto flex justify-center">
-              <button
-                onClick={handlePlayMatch}
-                disabled={animatingMatch !== null}
-                className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-display uppercase tracking-wide transition-all cursor-pointer text-base
-                           ${animatingMatch !== null
-                             ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-                             : "bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95 shadow-lg shadow-emerald-accent/25"
-                           }`}
-              >
-                {allRevealed ? (
-                  <><Trophy className="w-5 h-5" />See Results</>
-                ) : justFinishedGroup ? (
-                  <><Play className="w-5 h-5" />Enter Knockouts</>
-                ) : (
-                  <><Play className="w-5 h-5" />{visibleMatches === 0 && animatingMatch === null ? "Play Match 1" : "Play Next Match"}</>
-                )}
-              </button>
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#060a13] via-[#060a13]/95 to-transparent z-30">
+          <div className="max-w-2xl mx-auto flex justify-center">
+            <button
+              onClick={handlePlayMatch}
+              disabled={animatingMatch !== null}
+              className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-display uppercase tracking-wide transition-all cursor-pointer text-base
+                         ${animatingMatch !== null
+                           ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                           : "bg-emerald-accent text-white hover:bg-emerald-600 active:scale-95 shadow-lg shadow-emerald-accent/25"
+                         }`}
+            >
+              {allRevealed ? (
+                <><Trophy className="w-5 h-5" />See Results</>
+              ) : justFinishedGroup ? (
+                <><Play className="w-5 h-5" />Enter Knockouts</>
+              ) : (
+                <><Play className="w-5 h-5" />{visibleMatches === 0 && animatingMatch === null ? "Play Match 1" : "Play Next Match"}</>
+              )}
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -249,69 +271,141 @@ function GroupTable({ table, isGroupDone, qualified }) {
   );
 }
 
-// ─── Knockout Bracket ──────────────────────
-function KnockoutBracket({ knockoutMatches, onComplete }) {
-  const [activeRound, setActiveRound] = useState(0);
-  const maxRound = knockoutMatches.length;
-
-  useEffect(() => {
-    if (activeRound < maxRound) {
-      const timer = setTimeout(() => setActiveRound((r) => r + 1), 700);
-      return () => clearTimeout(timer);
-    } else {
-      const timer = setTimeout(onComplete, 800);
-      return () => clearTimeout(timer);
+// ─── Knockout Bracket Display ──────────────────────
+function shortenTeamName(name) {
+  if (!name) return "TBD";
+  if (name === "Your XI") return "Your XI";
+  const m = name.match(/^(\d{4})\s+(.+)$/);
+  if (m) {
+    let country = m[2];
+    if (country.length > 10) {
+      country = country.replace(/^South\s/, "S. ").replace(/^North\s/, "N. ");
     }
-  }, [activeRound, maxRound, onComplete]);
+    return `'${m[1].slice(2)} ${country}`;
+  }
+  return name
+    .replace("Bosnia and Herzegovina", "Bosnia")
+    .replace("Côte d'Ivoire", "Côte d'Iv.");
+}
+
+function KnockoutBracketDisplay({ bracket, knockoutMatches, knockoutVisible }) {
+  const { rounds, roundNames } = bracket;
+  const userEliminated = knockoutMatches.slice(0, knockoutVisible).some((m) => m.result === "L");
+  const eliminatedAtRound = userEliminated
+    ? knockoutMatches.slice(0, knockoutVisible).findIndex((m) => m.result === "L")
+    : -1;
+  const visibleRoundCount = userEliminated
+    ? Math.max(1, knockoutVisible)
+    : Math.min(knockoutVisible + 1, rounds.length);
+  const visibleRounds = rounds.slice(0, visibleRoundCount);
+  const visibleRoundNames = roundNames.slice(0, visibleRoundCount);
 
   return (
-    <div className="mb-6 p-5 rounded-xl bg-surface/80 border border-gray-700/60 overflow-hidden backdrop-blur-sm surface-noise">
-      <h3 className="font-display text-xs uppercase tracking-[0.2em] text-gray-400 mb-5 text-center relative z-10">The Road Ahead</h3>
-      <div className="flex items-center justify-center gap-1 sm:gap-2 relative z-10">
-        {KNOCKOUT_ROUNDS.slice(0, maxRound).map((round, i) => {
-          const isReached = i < activeRound;
-          const isCurrent = i === activeRound;
-          const match = knockoutMatches[i];
-          const isLast = i === maxRound - 1;
-          return (
-            <div key={round} className="flex items-center gap-1 sm:gap-2">
-              <div className={`flex flex-col items-center transition-all duration-500 ${
-                isReached ? "opacity-100 scale-100" : isCurrent ? "opacity-100 scale-105" : "opacity-25 scale-95"
-              }`}>
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-500 ${
-                  isReached
-                    ? "border-emerald-accent bg-emerald-accent/15 text-emerald-accent"
-                    : isCurrent
-                    ? "border-gold bg-gold/10 text-gold animate-pulse"
-                    : "border-gray-600 bg-surface-light/50 text-gray-500"
-                }`}>
-                  <span className="text-lg">{round === "Final" ? "🏆" : "⚽"}</span>
-                  <span className="font-display text-[9px] uppercase leading-tight text-center px-1">
-                    {round === "Round of 16" ? "R16" : round === "Quarter-Final" ? "QF" : round === "Semi-Final" ? "SF" : "Final"}
-                  </span>
+    <div className="mb-4 p-3 rounded-xl bg-surface/80 border border-gray-700/60 backdrop-blur-sm surface-noise animate-slide-up">
+      <div className="relative z-10">
+        <h3 className="font-display text-xs uppercase tracking-[0.15em] text-gray-400 mb-3">Knockout Bracket</h3>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          {/* Round headers */}
+          <div className="flex mb-1.5" style={{ minWidth: visibleRoundCount * 130 + 50 }}>
+            {visibleRoundNames.map((name, i) => (
+              <div key={i} className="flex items-center" style={{ flex: '1 1 0' }}>
+                <div className="flex-1 text-center font-display text-[9px] uppercase tracking-[0.12em] text-gray-500">
+                  {name}
                 </div>
-                <div className={`text-[10px] mt-1 text-center max-w-16 sm:max-w-20 truncate transition-all duration-500 ${
-                  isReached ? "text-gray-300" : "text-gray-600"
-                }`}>
-                  {match ? `vs ${match.opponent}` : ""}
-                </div>
+                {i < visibleRoundNames.length - 1 && <div className="w-3 shrink-0" />}
               </div>
-              {!isLast && (
-                <div className={`w-4 sm:w-8 h-0.5 rounded transition-all duration-700 ${
-                  isReached ? "bg-emerald-accent" : "bg-gray-700/50"
-                }`} />
-              )}
-            </div>
-          );
-        })}
+            ))}
+            {visibleRoundCount === rounds.length && <div className="w-8 shrink-0" />}
+          </div>
+          {/* Bracket body */}
+          <div className="flex" style={{ height: 380, minWidth: visibleRoundCount * 130 + 50 }}>
+            {visibleRounds.map((round, ri) => (
+              <div key={ri} className="contents">
+                {/* Match column */}
+                <div className="flex-1 flex flex-col justify-around gap-0">
+                  {round.map((match, mi) => {
+                    const isUser = match.userPath;
+                    let winner = match.winner;
+                    const isEliminated = isUser && userEliminated && ri > eliminatedAtRound;
+
+                    if (isUser && ri < knockoutVisible) {
+                      const result = knockoutMatches[ri];
+                      winner = result.result !== "L" ? "Your XI" : match.team2;
+                    } else if (isUser) {
+                      winner = null;
+                    }
+
+                    const isCurrent = isUser && ri === knockoutVisible && knockoutVisible < knockoutMatches.length && !userEliminated;
+
+                    return (
+                      <div
+                        key={mi}
+                        className={`rounded border text-[10px] leading-tight overflow-hidden transition-all ${
+                          isEliminated
+                            ? "border-gray-700/20 bg-surface-light/10 opacity-30"
+                            : isCurrent
+                            ? "border-gold/60 bg-gold/8 ring-1 ring-gold/20"
+                            : isUser
+                            ? "border-emerald-accent/30 bg-emerald-accent/5"
+                            : "border-gray-700/40 bg-surface-light/20"
+                        }`}
+                      >
+                        <BracketTeamRow
+                          name={match.team1}
+                          isUser={match.team1 === "Your XI"}
+                          isWinner={winner === match.team1}
+                          isLoser={!!winner && winner !== match.team1}
+                          dimmed={isEliminated}
+                        />
+                        <div className="border-t border-gray-700/30" />
+                        <BracketTeamRow
+                          name={match.team2}
+                          isUser={match.team2 === "Your XI"}
+                          isWinner={winner === match.team2}
+                          isLoser={!!winner && winner !== match.team2}
+                          dimmed={isEliminated}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Connector lines */}
+                {ri < visibleRounds.length - 1 && (
+                  <div className="w-3 shrink-0 flex flex-col">
+                    {Array.from({ length: round.length / 2 }, (_, i) => (
+                      <div key={i} className="flex flex-col flex-1">
+                        <div className="flex-1 border-r border-b border-gray-600/30 rounded-br-sm" />
+                        <div className="flex-1 border-r border-t border-gray-600/30 rounded-tr-sm" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {visibleRoundCount === rounds.length && (
+              <div className="w-8 shrink-0 flex flex-col justify-center items-center">
+                <Trophy className="w-5 h-5 text-gold/60" />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="mt-4 text-center relative z-10">
-        <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full transition-all duration-500 ${
-          activeRound >= maxRound ? "bg-emerald-accent/20 text-emerald-accent" : "bg-gold/20 text-gold animate-pulse"
-        }`}>
-          {activeRound >= maxRound ? "Let's go!" : "Your XI enters the knockout stage..."}
-        </span>
-      </div>
+    </div>
+  );
+}
+
+function BracketTeamRow({ name, isUser, isWinner, isLoser, dimmed }) {
+  return (
+    <div className={`px-1.5 py-[3px] truncate font-display tracking-tight ${
+      dimmed ? "text-gray-600" :
+      isUser && isWinner ? "text-emerald-accent font-bold bg-emerald-accent/10" :
+      isUser && isLoser ? "text-emerald-accent/30 line-through" :
+      isUser ? "text-emerald-accent font-bold" :
+      isWinner ? "text-white font-medium" :
+      isLoser ? "text-gray-600 line-through" :
+      "text-gray-400"
+    }`}>
+      {shortenTeamName(name)}
     </div>
   );
 }

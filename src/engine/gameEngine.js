@@ -1,4 +1,4 @@
-import { legends, formations, roleToPosition, roleCompatibility, historicOpponents } from "../data/legends";
+import { legends, formations, roleToPosition, roleCompatibility } from "../data/legends";
 
 export const PHASES = {
   SETUP: "SETUP",
@@ -113,21 +113,23 @@ export function calculateTeamStats(squad) {
   return { attack, midfield, defense };
 }
 
-// ─── Simulation helpers ──────────────────────────────────────
-// Opponent stats are flat team composites (88/86/78) while user stats
-// are position-weighted (FW drives ATK, GK dilutes it). Scale opponents
-// down to put both on the same scale.
-const OPPONENT_SCALE = 0.90;
-
-function normalizeOpponent(opp) {
-  return {
-    ...opp,
-    attack: Math.round(opp.attack * OPPONENT_SCALE),
-    midfield: Math.round(opp.midfield * OPPONENT_SCALE),
-    defense: Math.round(opp.defense * OPPONENT_SCALE),
-  };
+// ─── Compute 2026 WC team stats from player database ──────────
+function computeWCTeams() {
+  const byCountry = {};
+  for (const p of legends) {
+    if (p.year !== 2026) continue;
+    if (!byCountry[p.country]) byCountry[p.country] = [];
+    byCountry[p.country].push(p);
+  }
+  return Object.entries(byCountry).map(([country, players]) => {
+    const stats = calculateTeamStats(players);
+    return { name: country, ...stats };
+  });
 }
 
+const wcTeams = computeWCTeams();
+
+// ─── Simulation helpers ──────────────────────────────────────
 function calculatePower(stats) {
   return stats.attack * 0.4 + stats.midfield * 0.35 + stats.defense * 0.25;
 }
@@ -137,17 +139,16 @@ export function simulateTournament(squad) {
   const teamStats = calculateTeamStats(squad);
   const boostedStats = applySuperPowers(squad, teamStats);
 
-  const allOpponents = shuffleArray([...historicOpponents]).map(normalizeOpponent);
+  const allOpponents = shuffleArray([...wcTeams]);
 
-  // Group stage: pick 3 opponents for user + 3 for the rest of the group
+  // Group stage: pick 3 opponents
   const groupOpponents = allOpponents.slice(0, 3);
   const knockoutOpponents = allOpponents.slice(3, 7);
 
-  // Simulate the full group (user + 3 AI teams play each other)
-  const groupTable = simulateGroupStage(boostedStats, groupOpponents, squad);
+  const groupStage = simulateGroupStage(boostedStats, groupOpponents, squad);
 
-  const results = [...groupTable.userMatches];
-  let eliminated = !groupTable.qualified;
+  const results = [...groupStage.userMatches];
+  let eliminated = !groupStage.qualified;
 
   // Knockout rounds
   const knockoutRounds = ["Round of 16", "Quarter-Final", "Semi-Final", "Final"];
@@ -159,11 +160,23 @@ export function simulateTournament(squad) {
     if (match.result === "L") eliminated = true;
   }
 
+  // Build full 16-team bracket for display
+  const bracketFillers = [
+    ...groupOpponents.map((o) => o.name),
+    ...allOpponents.slice(7).map((o) => o.name),
+  ];
+  const bracket = buildBracketData(
+    knockoutOpponents.map((o) => o.name),
+    bracketFillers
+  );
+
   return {
     results,
     eliminated,
     finalRound: results[results.length - 1].round,
-    groupTable: groupTable.standings,
+    groupTable: groupStage.standings,
+    groupAIMatches: groupStage.aiMatches,
+    bracket,
   };
 }
 
@@ -181,18 +194,25 @@ function simulateGroupStage(teamStats, groupOpponents, squad) {
   }));
 
   const userMatches = [];
+  const aiMatches = [];
 
-  // Round-robin: each team plays the other 3 once
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = i + 1; j < teams.length; j++) {
-      const home = teams[i];
-      const away = teams[j];
+  // Matchday schedule: each day has 1 user match + 1 AI-AI match
+  const schedule = [
+    [[0, 1], [2, 3]],
+    [[0, 2], [1, 3]],
+    [[0, 3], [1, 2]],
+  ];
+
+  for (let md = 0; md < 3; md++) {
+    for (const [hi, ai] of schedule[md]) {
+      const home = teams[hi];
+      const away = teams[ai];
       const isUserMatch = home.isUser || away.isUser;
 
       const matchResult = simulateGroupMatch(home.stats, away.stats);
 
-      const si = standings[i];
-      const sj = standings[j];
+      const si = standings[hi];
+      const sj = standings[ai];
 
       si.played++;
       sj.played++;
@@ -235,6 +255,13 @@ function simulateGroupStage(teamStats, groupOpponents, squad) {
           events,
           cleanSheet: og === 0,
         });
+      } else {
+        aiMatches.push({
+          home: home.name,
+          away: away.name,
+          homeGoals: matchResult.homeGoals,
+          awayGoals: matchResult.awayGoals,
+        });
       }
     }
   }
@@ -250,7 +277,7 @@ function simulateGroupStage(teamStats, groupOpponents, squad) {
   const userRank = standings.findIndex((s) => s.isUser);
   const qualified = userRank < 2;
 
-  return { standings, userMatches, qualified };
+  return { standings, userMatches, aiMatches, qualified };
 }
 
 function simulateGroupMatch(homeStats, awayStats) {
@@ -724,4 +751,40 @@ function shuffleArray(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function buildBracketData(koNames, fillers) {
+  const f = [...fillers];
+
+  const r16 = [
+    { team1: "Your XI", team2: koNames[0], userPath: true },
+    { team1: koNames[1], team2: f[0], winner: koNames[1] },
+    { team1: koNames[2], team2: f[1], winner: koNames[2] },
+    { team1: f[2], team2: f[3], winner: f[2] },
+    { team1: koNames[3], team2: f[4], winner: koNames[3] },
+    { team1: f[5], team2: f[6], winner: f[5] },
+    { team1: f[7], team2: f[8], winner: f[7] },
+    { team1: f[9], team2: f[10], winner: f[9] },
+  ];
+
+  const qf = [
+    { team1: "Your XI", team2: koNames[1], userPath: true },
+    { team1: koNames[2], team2: f[2], winner: koNames[2] },
+    { team1: koNames[3], team2: f[5], winner: koNames[3] },
+    { team1: f[7], team2: f[9], winner: f[7] },
+  ];
+
+  const sf = [
+    { team1: "Your XI", team2: koNames[2], userPath: true },
+    { team1: koNames[3], team2: f[7], winner: koNames[3] },
+  ];
+
+  const final_ = [
+    { team1: "Your XI", team2: koNames[3], userPath: true },
+  ];
+
+  return {
+    rounds: [r16, qf, sf, final_],
+    roundNames: ["Round of 16", "Quarters", "Semis", "Final"],
+  };
 }
