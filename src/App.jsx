@@ -54,6 +54,7 @@ export default function App() {
           groupTable: tournament.groupTable,
           eliminated: tournament.eliminated,
           finalRound: tournament.finalRound,
+          bracket: tournament.bracket,
         };
       }
 
@@ -109,6 +110,7 @@ export default function App() {
         <TournamentPhase
           results={state.tournamentResults}
           groupTable={state.groupTable}
+          bracket={state.bracket}
           onComplete={handleTournamentComplete}
         />
       )}

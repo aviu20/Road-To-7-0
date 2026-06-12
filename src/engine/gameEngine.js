@@ -159,11 +159,22 @@ export function simulateTournament(squad) {
     if (match.result === "L") eliminated = true;
   }
 
+  // Build full 16-team bracket for display
+  const bracketFillers = [
+    ...groupOpponents.map((o) => o.name),
+    ...allOpponents.slice(7).map((o) => o.name),
+  ];
+  const bracket = buildBracketData(
+    knockoutOpponents.map((o) => o.name),
+    bracketFillers
+  );
+
   return {
     results,
     eliminated,
     finalRound: results[results.length - 1].round,
     groupTable: groupTable.standings,
+    bracket,
   };
 }
 
@@ -724,4 +735,40 @@ function shuffleArray(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function buildBracketData(koNames, fillers) {
+  const f = [...fillers];
+
+  const r16 = [
+    { team1: "Your XI", team2: koNames[0], userPath: true },
+    { team1: koNames[1], team2: f[0], winner: koNames[1] },
+    { team1: koNames[2], team2: f[1], winner: koNames[2] },
+    { team1: f[2], team2: f[3], winner: f[2] },
+    { team1: koNames[3], team2: f[4], winner: koNames[3] },
+    { team1: f[5], team2: f[6], winner: f[5] },
+    { team1: f[7], team2: f[8], winner: f[7] },
+    { team1: f[9], team2: f[10], winner: f[9] },
+  ];
+
+  const qf = [
+    { team1: "Your XI", team2: koNames[1], userPath: true },
+    { team1: koNames[2], team2: f[2], winner: koNames[2] },
+    { team1: koNames[3], team2: f[5], winner: koNames[3] },
+    { team1: f[7], team2: f[9], winner: f[7] },
+  ];
+
+  const sf = [
+    { team1: "Your XI", team2: koNames[2], userPath: true },
+    { team1: koNames[3], team2: f[7], winner: koNames[3] },
+  ];
+
+  const final_ = [
+    { team1: "Your XI", team2: koNames[3], userPath: true },
+  ];
+
+  return {
+    rounds: [r16, qf, sf, final_],
+    roundNames: ["Round of 16", "Quarters", "Semis", "Final"],
+  };
 }
